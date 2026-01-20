@@ -201,6 +201,8 @@ main() {
 }
 
 # Only run main if script is executed directly (not sourced)
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+# When piped to bash, BASH_SOURCE is empty, so we run main
+# When sourced, BASH_SOURCE[0] != $0, so we skip main
+if [[ -z "${BASH_SOURCE[0]:-}" ]] || [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
 fi
