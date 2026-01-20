@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            os: ubuntu-latest
+            artifact: upkeep-linux-x64
+          - target: darwin-arm64
+            os: macos-14
+            artifact: upkeep-darwin-arm64
+          - target: darwin-x64
+            os: macos-13
+            artifact: upkeep-darwin-x64
+          - target: windows-x64
+            os: windows-latest
+            artifact: upkeep-windows-x64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build binary
+        run: bun run build:${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          cp artifacts/upkeep-linux-x64/upkeep-linux-x64 release/
+          cp artifacts/upkeep-darwin-arm64/upkeep-darwin-arm64 release/
+          cp artifacts/upkeep-darwin-x64/upkeep-darwin-x64 release/
+          cp artifacts/upkeep-windows-x64.exe/upkeep-windows-x64.exe release/
+          chmod +x release/upkeep-linux-x64
+          chmod +x release/upkeep-darwin-arm64
+          chmod +x release/upkeep-darwin-x64
+          ls -la release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/upkeep-linux-x64
+            release/upkeep-darwin-arm64
+            release/upkeep-darwin-x64
+            release/upkeep-windows-x64.exe
+          generate_release_notes: true
+          draft: false
+          prerelease: false

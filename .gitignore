@@ -29,6 +29,9 @@ Thumbs.db
 # Bun binary lockfile (text-based bun.lock should be committed)
 *.lockb
 
+# Bun build artifacts
+.*.bun-build
+
 # TypeScript
 *.tsbuildinfo
 
