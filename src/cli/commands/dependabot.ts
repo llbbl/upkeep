@@ -1,3 +1,5 @@
+import { analyzeDependabot, isDependabotError } from "../../lib/github/dependabot.ts";
+
 /**
  * Fetch and analyze Dependabot PRs from GitHub.
  *
@@ -13,23 +15,55 @@ Usage: upkeep dependabot [options]
 
 Requirements:
   - gh CLI must be installed and authenticated
-  - Current directory must be a git repository
+  - Current directory must be a git repository with a GitHub remote
 
 Options:
-  --json        Output as JSON
   --help, -h    Show this help message
 
 Output:
-  JSON object with pending Dependabot PRs and summary
+  JSON object with pending Dependabot PRs and summary including:
+  - PR number, title, and URL
+  - Package name and version information (from/to)
+  - Update type (major, minor, patch)
+  - CI check status (passing, failing, pending, none)
+  - Mergeability status
+
+Example output:
+  {
+    "pullRequests": [
+      {
+        "number": 42,
+        "title": "Bump lodash from 4.17.20 to 4.17.21",
+        "package": "lodash",
+        "from": "4.17.20",
+        "to": "4.17.21",
+        "updateType": "patch",
+        "url": "https://github.com/owner/repo/pull/42",
+        "createdAt": "2024-01-15T10:00:00Z",
+        "mergeable": true,
+        "checks": "passing"
+      }
+    ],
+    "summary": {
+      "total": 5,
+      "patch": 3,
+      "minor": 1,
+      "major": 1,
+      "mergeable": 4
+    }
+  }
 `);
     return;
   }
 
-  console.log("Not implemented yet: dependabot command");
-  console.log("This command will fetch Dependabot PRs including:");
-  console.log("  - PR number, title, and URL");
-  console.log("  - Package and version information");
-  console.log("  - Update type (major, minor, patch)");
-  console.log("  - CI check status and mergeability");
-  process.exit(1);
+  const result = await analyzeDependabot({ cwd: process.cwd() });
+
+  if (isDependabotError(result)) {
+    // Output error as JSON for consistent output format
+    console.log(JSON.stringify({ error: result.message, type: result.type }, null, 2));
+    process.exit(1);
+  }
+
+  // Output JSON to stdout
+  console.log(JSON.stringify(result, null, 2));
 }

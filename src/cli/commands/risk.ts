@@ -5,6 +5,13 @@
  * multiple factors including update type, usage scope, critical paths,
  * and test coverage.
  */
+
+import { assessRisk, type RiskAssessment } from "../../lib/scorers/risk.ts";
+
+function formatRiskOutput(assessment: RiskAssessment): void {
+  console.log(JSON.stringify(assessment, null, 2));
+}
+
 export async function risk(args: string[]): Promise<void> {
   if (args.includes("--help") || args.includes("-h")) {
     console.log(`
@@ -18,7 +25,6 @@ Arguments:
 Options:
   --from <version>  Current version (auto-detected if not specified)
   --to <version>    Target version (latest if not specified)
-  --json            Output as JSON
   --help, -h        Show this help message
 
 Risk Factors:
@@ -29,6 +35,12 @@ Risk Factors:
 
 Output:
   JSON object with risk score, level, and recommendations
+
+Risk Levels:
+  - low: 0-25
+  - medium: 26-50
+  - high: 51-75
+  - critical: 76-100
 `);
     return;
   }
@@ -46,21 +58,32 @@ Output:
   let toVersion: string | undefined;
 
   for (let i = 1; i < args.length; i++) {
-    if (args[i] === "--from" && args[i + 1]) {
-      fromVersion = args[i + 1];
+    const arg = args[i];
+    const nextArg = args[i + 1];
+
+    if (arg === "--from" && nextArg) {
+      fromVersion = nextArg;
       i++;
-    } else if (args[i] === "--to" && args[i + 1]) {
-      toVersion = args[i + 1];
+    } else if (arg === "--to" && nextArg) {
+      toVersion = nextArg;
       i++;
     }
   }
 
-  console.log(`Not implemented yet: risk command for package "${packageName}"`);
-  if (fromVersion) console.log(`  From version: ${fromVersion}`);
-  if (toVersion) console.log(`  To version: ${toVersion}`);
-  console.log("This command will assess upgrade risk including:");
-  console.log("  - Overall risk score and level (low/medium/high)");
-  console.log("  - Factor breakdown with individual scores");
-  console.log("  - Specific recommendations for the upgrade");
-  process.exit(1);
+  try {
+    const assessment = await assessRisk(packageName, {
+      fromVersion,
+      toVersion,
+      cwd: process.cwd(),
+    });
+
+    formatRiskOutput(assessment);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error: An unexpected error occurred");
+    }
+    process.exit(1);
+  }
 }
