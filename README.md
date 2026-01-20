@@ -75,6 +75,12 @@ upkeep quality
 
 # List Dependabot PRs (requires gh CLI)
 upkeep dependabot
+
+# Enable verbose output
+upkeep --verbose detect
+
+# Set specific log level
+upkeep --log-level=debug audit
 ```
 
 ### Example Output
@@ -175,6 +181,11 @@ bun run build
 
 # Build for all platforms
 bun run build:all
+
+# Version management
+make bump-patch   # 0.1.2 → 0.1.3
+make bump-minor   # 0.1.2 → 0.2.0
+make show-versions
 ```
 
 ### Project Structure

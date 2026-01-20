@@ -41,15 +41,22 @@ bun run build:all    # Build all platform binaries
 
 See `docs/RELEASING.md` for full instructions.
 
-**Release Checklist:**
-1. Update version in `package.json`
-2. Update version in all skill files:
-   - `skills/upkeep-deps/SKILL.md` (frontmatter `version:` field)
-   - `skills/upkeep-audit/SKILL.md` (frontmatter `version:` field)
-   - `skills/upkeep-quality/SKILL.md` (frontmatter `version:` field)
-3. Commit and tag:
-   ```bash
-   git commit -m "chore: bump version to vX.Y.Z"
-   git tag vX.Y.Z
-   git push origin main --tags
-   ```
+**Use the Makefile for version management:**
+```bash
+make bump-patch   # 0.1.2 → 0.1.3
+make bump-minor   # 0.1.2 → 0.2.0
+make bump-major   # 0.1.2 → 1.0.0
+
+make show-versions  # Check all version values
+make version-sync   # Sync all files to package.json version
+```
+
+This automatically updates:
+- `package.json`
+- `src/cli/index.ts` (VERSION constant)
+- All skill frontmatters (`skills/*/SKILL.md`)
+
+Then push:
+```bash
+git push origin main --tags
+```
