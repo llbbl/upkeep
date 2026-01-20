@@ -59,7 +59,18 @@ get_download_url() {
     fi
 }
 
-# Download binary to a temporary file
+# Determine install directory
+# Prefer ~/.local/bin if it exists (user likely has it in PATH)
+# Otherwise use ~/.upkeep/bin
+get_install_dir() {
+    if [[ -d "$HOME/.local/bin" ]]; then
+        echo "$HOME/.local/bin"
+    else
+        echo "$HOME/.upkeep/bin"
+    fi
+}
+
+# Download binary
 download_binary() {
     local url="$1"
     local dest="$2"
@@ -77,31 +88,52 @@ download_binary() {
     chmod +x "$dest"
 }
 
-# Install Claude Code skills with binary
-install_skills() {
+# Install binary to global location
+install_binary() {
     local platform
     platform=$(detect_platform)
     info "Detected platform: $platform"
 
+    local install_dir
+    install_dir=$(get_install_dir)
+
+    # Create install directory if it doesn't exist
+    mkdir -p "$install_dir"
+
+    local binary_name="upkeep"
     local url
     url=$(get_download_url "$platform" "$VERSION")
 
     # Handle Windows extension
-    local binary_name="upkeep"
     if [[ "$platform" == windows-* ]]; then
         binary_name="upkeep.exe"
         url="${url}.exe"
     fi
 
-    # Download binary to temp file
-    local temp_binary
-    temp_binary=$(mktemp)
-    download_binary "$url" "$temp_binary"
+    local binary_path="$install_dir/$binary_name"
+    download_binary "$url" "$binary_path"
+
+    info "Installed upkeep to $binary_path"
+
+    # Return the path for use by install_skills
+    echo "$binary_path"
+}
+
+# Install Claude Code skills with symlinks to the binary
+install_skills() {
+    local binary_path="$1"
+    local platform
+    platform=$(detect_platform)
 
     info "Installing Claude Code skills to $SKILLS_DIR"
 
     local skills=("upkeep-deps" "upkeep-audit" "upkeep-quality")
     local base_url="https://raw.githubusercontent.com/llbbl/upkeep/main/skills"
+
+    local binary_name="upkeep"
+    if [[ "$platform" == windows-* ]]; then
+        binary_name="upkeep.exe"
+    fi
 
     for skill in "${skills[@]}"; do
         local skill_dir="$SKILLS_DIR/$skill"
@@ -117,32 +149,65 @@ install_skills() {
             wget -q "$base_url/$skill/SKILL.md" -O "$skill_dir/SKILL.md"
         fi
 
-        # Copy binary to skill's bin directory
-        cp "$temp_binary" "$bin_dir/$binary_name"
-        chmod +x "$bin_dir/$binary_name"
-        info "  Installed binary to $bin_dir/$binary_name"
-    done
+        # Remove existing binary/symlink
+        rm -f "$bin_dir/$binary_name"
 
-    # Clean up temp file
-    rm -f "$temp_binary"
+        # Try symlink first (saves disk space), fall back to copy
+        if [[ "$platform" != windows-* ]] && ln -s "$binary_path" "$bin_dir/$binary_name" 2>/dev/null; then
+            info "  Linked to $binary_path"
+        else
+            # Copy on Windows or if symlink fails
+            cp "$binary_path" "$bin_dir/$binary_name"
+            chmod +x "$bin_dir/$binary_name"
+            info "  Copied binary to $bin_dir"
+        fi
+    done
 
     info "Skills installed successfully"
 }
 
+# Show PATH instructions
+show_path_instructions() {
+    local install_dir
+    install_dir=$(get_install_dir)
+
+    echo ""
+    warn "Make sure $install_dir is in your PATH."
+    echo ""
+    echo "Add this to your shell config:"
+    echo ""
+    echo "  # For zsh (~/.zshrc):"
+    echo "  export PATH=\"\$PATH:$install_dir\""
+    echo ""
+    echo "  # For bash (~/.bashrc or ~/.bash_profile):"
+    echo "  export PATH=\"\$PATH:$install_dir\""
+    echo ""
+    echo "Then restart your terminal or run: source ~/.zshrc"
+    echo ""
+}
+
 # Verify installation
 verify_installation() {
+    local binary_path="$1"
+
     info "Verifying installation..."
 
-    # Use the first skill's binary to verify
-    local test_binary="$SKILLS_DIR/upkeep-deps/bin/upkeep"
-    if [[ -x "$test_binary" ]]; then
-        "$test_binary" --version
+    if [[ -x "$binary_path" ]]; then
+        "$binary_path" --version
     else
         error "Installation verification failed"
     fi
 
     echo ""
     info "Installation complete!"
+
+    show_path_instructions
+
+    echo "Usage:"
+    echo "  upkeep detect     # Detect project configuration"
+    echo "  upkeep deps       # Analyze dependencies"
+    echo "  upkeep audit      # Security audit"
+    echo "  upkeep quality    # Quality report"
     echo ""
     echo "Claude Code skills installed:"
     echo "  /upkeep-deps      # Dependency upgrades"
@@ -162,8 +227,10 @@ main() {
     echo "JS/TS Repository Maintenance Toolkit"
     echo ""
 
-    install_skills
-    verify_installation
+    local binary_path
+    binary_path=$(install_binary)
+    install_skills "$binary_path"
+    verify_installation "$binary_path"
 }
 
 # Only run main if script is executed directly (not sourced)

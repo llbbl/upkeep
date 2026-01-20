@@ -77,9 +77,7 @@ describe("install.sh", () => {
       );
     });
 
-    test("generates Windows URL with .exe extension", async () => {
-      // The get_download_url function doesn't add .exe - that's done in install_binary
-      // So we test the base URL generation
+    test("generates Windows URL correctly", async () => {
       const result = await runScriptFunction('get_download_url "windows-x64" "latest"');
 
       expect(result.exitCode).toBe(0);
@@ -89,12 +87,36 @@ describe("install.sh", () => {
     });
   });
 
+  describe("get_install_dir()", () => {
+    test("returns ~/.local/bin if it exists", async () => {
+      const home = process.env.HOME;
+      // Create a temp scenario where ~/.local/bin exists
+      const result = await runScriptFunction(`
+        mkdir -p "$HOME/.local/bin"
+        get_install_dir
+      `);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim()).toBe(`${home}/.local/bin`);
+    });
+
+    test("returns ~/.upkeep/bin if ~/.local/bin does not exist", async () => {
+      const home = process.env.HOME;
+      // Use a modified HOME to simulate ~/.local/bin not existing
+      const result = await runScriptFunction("get_install_dir", {
+        HOME: "/tmp/fake-home-nonexistent",
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim()).toBe("/tmp/fake-home-nonexistent/.upkeep/bin");
+    });
+  });
+
   describe("helper functions", () => {
     test("info() outputs green message", async () => {
       const result = await runScriptFunction('info "Test message"');
 
       expect(result.exitCode).toBe(0);
-      // Check for the message (colors may or may not show depending on terminal)
       expect(result.stdout).toContain("Test message");
     });
 
@@ -106,15 +128,12 @@ describe("install.sh", () => {
     });
 
     test("error() outputs red message and exits with 1", async () => {
-      // error() calls exit 1, so we need to handle that
       const script = `
         source "${SCRIPT_PATH}"
-        # Override exit to capture exit code
         error "Error message" || true
       `;
       const result = await runBash(script);
 
-      // The function calls exit 1, so the script will exit
       expect(result.stdout).toContain("Error message");
     });
   });
@@ -155,11 +174,9 @@ describe("install.sh", () => {
 
   describe("script syntax", () => {
     test("passes shellcheck (if available)", async () => {
-      // Check if shellcheck is available
       const hasShellcheck = await runBash("command -v shellcheck");
       if (hasShellcheck.exitCode !== 0) {
-        // Skip test if shellcheck is not installed
-        return;
+        return; // Skip test if shellcheck is not installed
       }
 
       const result = await runBash(`shellcheck -x "${SCRIPT_PATH}"`);
@@ -178,8 +195,11 @@ describe("install.sh", () => {
       const functions = [
         "detect_platform",
         "get_download_url",
+        "get_install_dir",
         "download_binary",
+        "install_binary",
         "install_skills",
+        "show_path_instructions",
         "verify_installation",
         "main",
         "info",
@@ -210,7 +230,6 @@ describe("install.sh", () => {
   describe("platform detection edge cases", () => {
     test("handles x86_64 architecture", async () => {
       const script = `
-        # Mock uname to return x86_64
         uname() {
           case "$1" in
             -s) echo "Linux" ;;
@@ -280,11 +299,8 @@ describe("install.sh", () => {
 
   describe("download methods", () => {
     test("prefers curl over wget", async () => {
-      // Check that curl is used when available
       const script = `
         source "${SCRIPT_PATH}"
-
-        # Check download_binary implementation
         type download_binary | grep -q 'curl'
       `;
       const result = await runBash(script);
@@ -295,8 +311,6 @@ describe("install.sh", () => {
     test("falls back to wget when curl unavailable", async () => {
       const script = `
         source "${SCRIPT_PATH}"
-
-        # Check download_binary has wget fallback
         type download_binary | grep -q 'wget'
       `;
       const result = await runBash(script);
@@ -309,8 +323,6 @@ describe("install.sh", () => {
     test("installs correct skills", async () => {
       const script = `
         source "${SCRIPT_PATH}"
-
-        # Check that skills array contains expected skills
         type install_skills | grep -o 'upkeep-deps\\|upkeep-audit\\|upkeep-quality' | sort -u
       `;
       const result = await runBash(script);
@@ -318,6 +330,31 @@ describe("install.sh", () => {
       expect(result.stdout).toContain("upkeep-deps");
       expect(result.stdout).toContain("upkeep-audit");
       expect(result.stdout).toContain("upkeep-quality");
+    });
+  });
+
+  describe("show_path_instructions()", () => {
+    test("shows zsh instructions", async () => {
+      const result = await runScriptFunction("show_path_instructions");
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("zsh");
+      expect(result.stdout).toContain(".zshrc");
+    });
+
+    test("shows bash instructions", async () => {
+      const result = await runScriptFunction("show_path_instructions");
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("bash");
+      expect(result.stdout).toContain(".bashrc");
+    });
+
+    test("includes the install directory in PATH export", async () => {
+      const result = await runScriptFunction("show_path_instructions");
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("export PATH");
     });
   });
 });
