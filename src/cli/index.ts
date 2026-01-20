@@ -12,7 +12,7 @@ import { risk } from "./commands/risk.ts";
 const HELP_TEXT = `
 upkeep - A JS/TS repository maintenance toolkit
 
-Usage: upkeep <command> [options]
+Usage: upkeep [options] <command> [command-options]
 
 Commands:
   detect              Detect project configuration
@@ -26,15 +26,18 @@ Commands:
 Options:
   --help, -h          Show this help message
   --version, -v       Show version
+  --verbose           Enable verbose output (info level logging)
+  --log-level=<level> Set log level (trace, debug, info, warn, error)
 
 Examples:
   upkeep detect
-  upkeep deps --outdated
+  upkeep --verbose deps
+  upkeep --log-level=debug audit
   upkeep imports lodash
   upkeep risk next --from 14.0.0 --to 15.0.0
 `;
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.2";
 
 type CommandHandler = (args: string[]) => Promise<void>;
 
@@ -56,12 +59,44 @@ function showVersion(): void {
   console.log(`upkeep v${VERSION}`);
 }
 
+/**
+ * Parse global options from args and return remaining args.
+ * Sets logger level based on --verbose or --log-level flags.
+ */
+function parseGlobalOptions(args: string[]): string[] {
+  const remaining: string[] = [];
+
+  for (const arg of args) {
+    if (arg === "--verbose") {
+      logger.level = "info";
+    } else if (arg.startsWith("--log-level=")) {
+      const level = arg.split("=")[1];
+      const validLevels = ["trace", "debug", "info", "warn", "error", "fatal"];
+      if (validLevels.includes(level)) {
+        logger.level = level;
+      } else {
+        console.error(`Invalid log level: ${level}`);
+        console.error(`Valid levels: ${validLevels.join(", ")}`);
+        process.exit(1);
+      }
+    } else {
+      remaining.push(arg);
+    }
+  }
+
+  return remaining;
+}
+
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
+  const rawArgs = process.argv.slice(2);
+
+  // Parse global options first (--verbose, --log-level)
+  const args = parseGlobalOptions(rawArgs);
+
   const command = args[0];
   const commandArgs = args.slice(1);
 
-  logger.debug({ args }, "CLI started");
+  logger.debug({ args: rawArgs }, "CLI started");
 
   // Show help if no command or if --help is the first arg (before command)
   if (args.length === 0 || command === "--help" || command === "-h") {

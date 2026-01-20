@@ -22,7 +22,10 @@ function isPrettyMode(): boolean {
 
 /**
  * Determine the log level based on environment variables.
- * Priority: LOG_LEVEL > DEBUG (sets debug) > default (info)
+ * Priority: LOG_LEVEL > DEBUG (sets debug) > default (warn)
+ *
+ * Default is "warn" to keep CLI output clean. Use -v/--verbose or
+ * LOG_LEVEL=info for more detailed output.
  */
 function getLogLevel(): pino.Level {
   if (process.env.LOG_LEVEL) {
@@ -37,7 +40,7 @@ function getLogLevel(): pino.Level {
     return "debug";
   }
 
-  return "info";
+  return "warn";
 }
 
 /**
