@@ -20,10 +20,10 @@ jobs:
             os: ubuntu-latest
             artifact: upkeep-linux-x64
           - target: darwin-arm64
-            os: macos-14
+            os: macos-latest
             artifact: upkeep-darwin-arm64
           - target: darwin-x64
-            os: macos-13
+            os: macos-latest
             artifact: upkeep-darwin-x64
           - target: windows-x64
             os: windows-latest
