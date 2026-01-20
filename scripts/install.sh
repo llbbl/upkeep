@@ -14,15 +14,15 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 info() {
-    echo -e "${GREEN}[info]${NC} $1"
+    echo -e "${GREEN}[info]${NC} $1" >&2
 }
 
 warn() {
-    echo -e "${YELLOW}[warn]${NC} $1"
+    echo -e "${YELLOW}[warn]${NC} $1" >&2
 }
 
 error() {
-    echo -e "${RED}[error]${NC} $1"
+    echo -e "${RED}[error]${NC} $1" >&2
     exit 1
 }
 

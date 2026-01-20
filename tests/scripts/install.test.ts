@@ -112,28 +112,28 @@ describe("install.sh", () => {
   });
 
   describe("helper functions", () => {
-    test("info() outputs green message", async () => {
+    test("info() outputs green message to stderr", async () => {
       const result = await runScriptFunction('info "Test message"');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Test message");
+      expect(result.stderr).toContain("Test message");
     });
 
-    test("warn() outputs yellow message", async () => {
+    test("warn() outputs yellow message to stderr", async () => {
       const result = await runScriptFunction('warn "Warning message"');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Warning message");
+      expect(result.stderr).toContain("Warning message");
     });
 
-    test("error() outputs red message and exits with 1", async () => {
+    test("error() outputs red message to stderr and exits with 1", async () => {
       const script = `
         source "${SCRIPT_PATH}"
         error "Error message" || true
       `;
       const result = await runBash(script);
 
-      expect(result.stdout).toContain("Error message");
+      expect(result.stderr).toContain("Error message");
     });
   });
 
