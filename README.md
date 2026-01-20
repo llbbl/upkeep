@@ -14,15 +14,25 @@ A comprehensive maintenance toolkit for JavaScript and TypeScript repositories, 
 
 ## Installation
 
-### Quick Install (Recommended)
+### Claude Code Skills (Recommended)
+
+For AI-powered maintenance workflows in Claude Code:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/llbbl/upkeep/main/scripts/install.sh | bash
 ```
 
-This installs:
-- The `upkeep` binary to `~/.local/bin/`
-- Claude Code skills to `~/.claude/skills/`
+This installs Claude Code skills to `~/.claude/skills/` with the upkeep binary embedded in each skill.
+
+### Global CLI
+
+For standalone command-line usage:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/llbbl/upkeep/main/scripts/global.sh | bash
+```
+
+This installs the `upkeep` binary to a directory in your PATH (auto-detected, typically `~/.local/bin/`).
 
 ### Manual Installation
 

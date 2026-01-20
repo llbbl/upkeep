@@ -5,7 +5,6 @@ set -euo pipefail
 # Usage: curl -fsSL https://raw.githubusercontent.com/llbbl/upkeep/main/scripts/install.sh | bash
 
 VERSION="${UPKEEP_VERSION:-latest}"
-INSTALL_DIR="${UPKEEP_INSTALL_DIR:-$HOME/.local/bin}"
 SKILLS_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 
 # Colors for output
@@ -44,11 +43,6 @@ detect_platform() {
         *) error "Unsupported architecture: $(uname -m)" ;;
     esac
 
-    # Adjust for platform-specific naming
-    if [[ "$os" == "darwin" && "$arch" == "x64" ]]; then
-        arch="x64"  # Intel Mac
-    fi
-
     echo "${os}-${arch}"
 }
 
@@ -65,7 +59,7 @@ get_download_url() {
     fi
 }
 
-# Download binary
+# Download binary to a temporary file
 download_binary() {
     local url="$1"
     local dest="$2"
@@ -83,40 +77,27 @@ download_binary() {
     chmod +x "$dest"
 }
 
-# Install binary
-install_binary() {
+# Install Claude Code skills with binary
+install_skills() {
     local platform
     platform=$(detect_platform)
-
     info "Detected platform: $platform"
 
-    # Create install directory if it doesn't exist
-    mkdir -p "$INSTALL_DIR"
-
-    local binary_path="$INSTALL_DIR/upkeep"
     local url
     url=$(get_download_url "$platform" "$VERSION")
 
     # Handle Windows extension
+    local binary_name="upkeep"
     if [[ "$platform" == windows-* ]]; then
-        binary_path="$INSTALL_DIR/upkeep.exe"
+        binary_name="upkeep.exe"
         url="${url}.exe"
     fi
 
-    download_binary "$url" "$binary_path"
+    # Download binary to temp file
+    local temp_binary
+    temp_binary=$(mktemp)
+    download_binary "$url" "$temp_binary"
 
-    info "Installed upkeep to $binary_path"
-
-    # Check if install dir is in PATH
-    if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-        warn "$INSTALL_DIR is not in your PATH"
-        warn "Add this to your shell profile:"
-        warn "  export PATH=\"\$PATH:$INSTALL_DIR\""
-    fi
-}
-
-# Install Claude Code skills
-install_skills() {
     info "Installing Claude Code skills to $SKILLS_DIR"
 
     local skills=("upkeep-deps" "upkeep-audit" "upkeep-quality")
@@ -136,19 +117,14 @@ install_skills() {
             wget -q "$base_url/$skill/SKILL.md" -O "$skill_dir/SKILL.md"
         fi
 
-        # Create symlink to binary (or copy if symlinks not supported)
-        if [[ -L "$bin_dir/upkeep" ]] || [[ -f "$bin_dir/upkeep" ]]; then
-            rm -f "$bin_dir/upkeep"
-        fi
-
-        if ln -s "$INSTALL_DIR/upkeep" "$bin_dir/upkeep" 2>/dev/null; then
-            info "  Created symlink to binary"
-        else
-            # Fallback: copy the binary
-            cp "$INSTALL_DIR/upkeep" "$bin_dir/upkeep"
-            info "  Copied binary (symlinks not supported)"
-        fi
+        # Copy binary to skill's bin directory
+        cp "$temp_binary" "$bin_dir/$binary_name"
+        chmod +x "$bin_dir/$binary_name"
+        info "  Installed binary to $bin_dir/$binary_name"
     done
+
+    # Clean up temp file
+    rm -f "$temp_binary"
 
     info "Skills installed successfully"
 }
@@ -157,25 +133,16 @@ install_skills() {
 verify_installation() {
     info "Verifying installation..."
 
-    if ! command -v upkeep &> /dev/null; then
-        # Try the direct path
-        if [[ -x "$INSTALL_DIR/upkeep" ]]; then
-            "$INSTALL_DIR/upkeep" --version
-        else
-            error "Installation verification failed"
-        fi
+    # Use the first skill's binary to verify
+    local test_binary="$SKILLS_DIR/upkeep-deps/bin/upkeep"
+    if [[ -x "$test_binary" ]]; then
+        "$test_binary" --version
     else
-        upkeep --version
+        error "Installation verification failed"
     fi
 
     echo ""
     info "Installation complete!"
-    echo ""
-    echo "Usage:"
-    echo "  upkeep detect     # Detect project configuration"
-    echo "  upkeep deps       # Analyze dependencies"
-    echo "  upkeep audit      # Security audit"
-    echo "  upkeep quality    # Quality report"
     echo ""
     echo "Claude Code skills installed:"
     echo "  /upkeep-deps      # Dependency upgrades"
@@ -195,7 +162,6 @@ main() {
     echo "JS/TS Repository Maintenance Toolkit"
     echo ""
 
-    install_binary
     install_skills
     verify_installation
 }

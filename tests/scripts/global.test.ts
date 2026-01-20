@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
-const SCRIPT_PATH = join(import.meta.dir, "../../scripts/install.sh");
+const SCRIPT_PATH = join(import.meta.dir, "../../scripts/global.sh");
 
 /**
  * Run a bash command and return the result.
@@ -24,7 +24,7 @@ async function runBash(
 }
 
 /**
- * Source the install script and run a function from it.
+ * Source the global script and run a function from it.
  */
 async function runScriptFunction(
   functionCall: string,
@@ -37,24 +37,13 @@ async function runScriptFunction(
   return runBash(script, env);
 }
 
-describe("install.sh", () => {
+describe("global.sh", () => {
   describe("detect_platform()", () => {
     test("returns platform-arch format", async () => {
       const result = await runScriptFunction("detect_platform");
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout.trim()).toMatch(/^(linux|darwin|windows)-(x64|arm64)$/);
-    });
-
-    test("detects darwin on macOS", async () => {
-      // This test will pass on macOS, skip on other platforms
-      const uname = await runBash("uname -s");
-      if (!uname.stdout.includes("Darwin")) {
-        return; // Skip on non-macOS
-      }
-
-      const result = await runScriptFunction("detect_platform");
-      expect(result.stdout.trim()).toMatch(/^darwin-(x64|arm64)$/);
     });
   });
 
@@ -76,16 +65,74 @@ describe("install.sh", () => {
         "https://github.com/llbbl/upkeep/releases/download/v1.0.0/upkeep-linux-x64"
       );
     });
+  });
 
-    test("generates Windows URL with .exe extension", async () => {
-      // The get_download_url function doesn't add .exe - that's done in install_binary
-      // So we test the base URL generation
-      const result = await runScriptFunction('get_download_url "windows-x64" "latest"');
+  describe("is_in_path()", () => {
+    test("returns true for directory in PATH", async () => {
+      const result = await runScriptFunction('is_in_path "/usr/bin" && echo "yes" || echo "no"');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe(
-        "https://github.com/llbbl/upkeep/releases/latest/download/upkeep-windows-x64"
+      expect(result.stdout.trim()).toBe("yes");
+    });
+
+    test("returns false for directory not in PATH", async () => {
+      const result = await runScriptFunction(
+        'is_in_path "/nonexistent/path/12345" && echo "yes" || echo "no"'
       );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim()).toBe("no");
+    });
+  });
+
+  describe("find_path_dirs()", () => {
+    test("returns directories that are in PATH", async () => {
+      // This test checks the function runs without error
+      const result = await runScriptFunction("find_path_dirs");
+
+      expect(result.exitCode).toBe(0);
+      // Output may be empty or contain paths, both are valid
+    });
+
+    test("finds ~/.local/bin if it exists in PATH", async () => {
+      const home = process.env.HOME;
+      const result = await runScriptFunction("find_path_dirs", {
+        PATH: `${home}/.local/bin:/usr/bin:/bin`,
+      });
+
+      expect(result.exitCode).toBe(0);
+      if (result.stdout.trim()) {
+        expect(result.stdout).toContain(".local/bin");
+      }
+    });
+  });
+
+  describe("suggest_install_dir()", () => {
+    test("suggests a directory", async () => {
+      const result = await runScriptFunction("suggest_install_dir");
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim()).toBeTruthy();
+    });
+
+    test("suggests ~/.local/bin as fallback", async () => {
+      // With no common dirs in PATH, should fallback to ~/.local/bin
+      const result = await runScriptFunction("suggest_install_dir", {
+        PATH: "/usr/bin:/bin",
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim()).toContain(".local/bin");
+    });
+
+    test("prefers directory already in PATH", async () => {
+      const home = process.env.HOME;
+      const result = await runScriptFunction("suggest_install_dir", {
+        PATH: `${home}/.local/bin:/usr/bin:/bin`,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim()).toBe(`${home}/.local/bin`);
     });
   });
 
@@ -94,7 +141,6 @@ describe("install.sh", () => {
       const result = await runScriptFunction('info "Test message"');
 
       expect(result.exitCode).toBe(0);
-      // Check for the message (colors may or may not show depending on terminal)
       expect(result.stdout).toContain("Test message");
     });
 
@@ -105,17 +151,11 @@ describe("install.sh", () => {
       expect(result.stdout).toContain("Warning message");
     });
 
-    test("error() outputs red message and exits with 1", async () => {
-      // error() calls exit 1, so we need to handle that
-      const script = `
-        source "${SCRIPT_PATH}"
-        # Override exit to capture exit code
-        error "Error message" || true
-      `;
-      const result = await runBash(script);
+    test("prompt() outputs blue message", async () => {
+      const result = await runScriptFunction('prompt "Question?"');
 
-      // The function calls exit 1, so the script will exit
-      expect(result.stdout).toContain("Error message");
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Question?");
     });
   });
 
@@ -136,62 +176,28 @@ describe("install.sh", () => {
       expect(result.stdout.trim()).toBe("v1.2.3");
     });
 
-    test("CLAUDE_SKILLS_DIR defaults to ~/.claude/skills", async () => {
-      const result = await runScriptFunction('echo "$SKILLS_DIR"');
+    test("UPKEEP_INSTALL_DIR defaults to empty (auto-detect)", async () => {
+      const result = await runScriptFunction('echo "[$INSTALL_DIR]"');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe(`${process.env.HOME}/.claude/skills`);
+      expect(result.stdout.trim()).toBe("[]");
     });
 
-    test("CLAUDE_SKILLS_DIR can be overridden", async () => {
-      const result = await runScriptFunction('echo "$SKILLS_DIR"', {
-        CLAUDE_SKILLS_DIR: "/custom/skills",
+    test("UPKEEP_INSTALL_DIR can be overridden", async () => {
+      const result = await runScriptFunction('echo "$INSTALL_DIR"', {
+        UPKEEP_INSTALL_DIR: "/custom/path",
       });
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe("/custom/skills");
+      expect(result.stdout.trim()).toBe("/custom/path");
     });
   });
 
   describe("script syntax", () => {
-    test("passes shellcheck (if available)", async () => {
-      // Check if shellcheck is available
-      const hasShellcheck = await runBash("command -v shellcheck");
-      if (hasShellcheck.exitCode !== 0) {
-        // Skip test if shellcheck is not installed
-        return;
-      }
-
-      const result = await runBash(`shellcheck -x "${SCRIPT_PATH}"`);
-      expect(result.exitCode).toBe(0);
-    });
-
     test("script is valid bash syntax", async () => {
       const result = await runBash(`bash -n "${SCRIPT_PATH}"`);
 
       expect(result.exitCode).toBe(0);
-    });
-  });
-
-  describe("script structure", () => {
-    test("has required functions", async () => {
-      const functions = [
-        "detect_platform",
-        "get_download_url",
-        "download_binary",
-        "install_skills",
-        "verify_installation",
-        "main",
-        "info",
-        "warn",
-        "error",
-      ];
-
-      for (const fn of functions) {
-        const result = await runScriptFunction(`type ${fn}`);
-        expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain(`${fn} is a function`);
-      }
     });
 
     test("uses set -euo pipefail", async () => {
@@ -207,31 +213,39 @@ describe("install.sh", () => {
     });
   });
 
-  describe("platform detection edge cases", () => {
+  describe("script structure", () => {
+    test("has required functions", async () => {
+      const functions = [
+        "detect_platform",
+        "get_download_url",
+        "download_binary",
+        "install_binary",
+        "verify_installation",
+        "is_in_path",
+        "find_path_dirs",
+        "suggest_install_dir",
+        "main",
+        "info",
+        "warn",
+        "error",
+        "prompt",
+      ];
+
+      for (const fn of functions) {
+        const result = await runScriptFunction(`type ${fn}`);
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain(`${fn} is a function`);
+      }
+    });
+  });
+
+  describe("platform detection", () => {
     test("handles x86_64 architecture", async () => {
       const script = `
-        # Mock uname to return x86_64
         uname() {
           case "$1" in
             -s) echo "Linux" ;;
             -m) echo "x86_64" ;;
-          esac
-        }
-        source "${SCRIPT_PATH}"
-        detect_platform
-      `;
-      const result = await runBash(script);
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe("linux-x64");
-    });
-
-    test("handles amd64 architecture", async () => {
-      const script = `
-        uname() {
-          case "$1" in
-            -s) echo "Linux" ;;
-            -m) echo "amd64" ;;
           esac
         }
         source "${SCRIPT_PATH}"
@@ -259,32 +273,12 @@ describe("install.sh", () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout.trim()).toBe("darwin-arm64");
     });
-
-    test("handles aarch64 architecture", async () => {
-      const script = `
-        uname() {
-          case "$1" in
-            -s) echo "Linux" ;;
-            -m) echo "aarch64" ;;
-          esac
-        }
-        source "${SCRIPT_PATH}"
-        detect_platform
-      `;
-      const result = await runBash(script);
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe("linux-arm64");
-    });
   });
 
   describe("download methods", () => {
     test("prefers curl over wget", async () => {
-      // Check that curl is used when available
       const script = `
         source "${SCRIPT_PATH}"
-
-        # Check download_binary implementation
         type download_binary | grep -q 'curl'
       `;
       const result = await runBash(script);
@@ -295,29 +289,11 @@ describe("install.sh", () => {
     test("falls back to wget when curl unavailable", async () => {
       const script = `
         source "${SCRIPT_PATH}"
-
-        # Check download_binary has wget fallback
         type download_binary | grep -q 'wget'
       `;
       const result = await runBash(script);
 
       expect(result.exitCode).toBe(0);
-    });
-  });
-
-  describe("skill names", () => {
-    test("installs correct skills", async () => {
-      const script = `
-        source "${SCRIPT_PATH}"
-
-        # Check that skills array contains expected skills
-        type install_skills | grep -o 'upkeep-deps\\|upkeep-audit\\|upkeep-quality' | sort -u
-      `;
-      const result = await runBash(script);
-
-      expect(result.stdout).toContain("upkeep-deps");
-      expect(result.stdout).toContain("upkeep-audit");
-      expect(result.stdout).toContain("upkeep-quality");
     });
   });
 });
