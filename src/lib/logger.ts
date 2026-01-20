@@ -1,10 +1,22 @@
 import pino from "pino";
 
 /**
+ * Detect if running in a compiled Bun binary.
+ * Compiled binaries run from /$bunfs/ virtual filesystem.
+ */
+function isCompiledBinary(): boolean {
+  return import.meta.url.startsWith("file:///$bunfs/");
+}
+
+/**
  * Determine if we should use pretty printing.
  * Pretty print when DEBUG is set or NODE_ENV=development.
+ * Never use pretty printing in compiled binaries (pino-pretty can't be resolved).
  */
 function isPrettyMode(): boolean {
+  if (isCompiledBinary()) {
+    return false;
+  }
   return Boolean(process.env.DEBUG) || process.env.NODE_ENV === "development";
 }
 
