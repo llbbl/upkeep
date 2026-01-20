@@ -39,11 +39,17 @@ bun run build:all    # Build all platform binaries
 
 ## Releasing
 
-See `docs/RELEASING.md` for full instructions. Quick version:
+See `docs/RELEASING.md` for full instructions.
 
-```bash
-# Update version in package.json, then:
-git commit -m "chore: bump version to vX.Y.Z"
-git tag vX.Y.Z
-git push origin main --tags
-```
+**Release Checklist:**
+1. Update version in `package.json`
+2. Update version in all skill files:
+   - `skills/upkeep-deps/SKILL.md` (frontmatter `version:` field)
+   - `skills/upkeep-audit/SKILL.md` (frontmatter `version:` field)
+   - `skills/upkeep-quality/SKILL.md` (frontmatter `version:` field)
+3. Commit and tag:
+   ```bash
+   git commit -m "chore: bump version to vX.Y.Z"
+   git tag vX.Y.Z
+   git push origin main --tags
+   ```

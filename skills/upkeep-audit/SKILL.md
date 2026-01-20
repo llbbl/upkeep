@@ -1,5 +1,6 @@
 ---
 name: upkeep-audit
+version: 0.1.2
 description: Security audit with fix recommendations for JS/TS projects
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
@@ -15,6 +16,33 @@ This skill helps you:
 2. Understand the severity and impact of each vulnerability
 3. Assess the risk of applying fixes
 4. Apply fixes safely with testing
+
+## Git Workflow Defaults
+
+**IMPORTANT:** Always follow these defaults unless the user explicitly requests otherwise:
+
+1. **Work in a branch** - Never commit directly to main. Create a feature branch:
+   ```bash
+   git checkout -b security/fix-vulnerabilities
+   ```
+
+2. **Create a PR** - After committing fixes, create a pull request:
+   ```bash
+   gh pr create --title "fix: resolve security vulnerabilities" --body "## Summary
+   - Fixed X vulnerabilities (Y critical, Z high)
+
+   ## Vulnerabilities Fixed
+   [list vulnerabilities]
+
+   ## Testing
+   - All tests passing
+   - Audit re-run shows resolved issues"
+   ```
+
+3. **No attribution** - Do NOT include any of these in commits or PRs:
+   - `Co-Authored-By: Claude` or any Claude attribution
+   - `🤖 Generated with Claude Code` or similar footers
+   - Any AI/assistant attribution or emoji markers
 
 ## Prerequisites
 

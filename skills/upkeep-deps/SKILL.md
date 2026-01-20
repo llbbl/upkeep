@@ -1,5 +1,6 @@
 ---
 name: upkeep-deps
+version: 0.1.2
 description: Upgrade JS/TS dependencies with risk assessment and Dependabot PR integration
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
@@ -15,6 +16,32 @@ This skill helps you upgrade dependencies safely by:
 2. Assessing the risk of each upgrade
 3. Executing upgrades with proper testing
 4. Rolling back if tests fail
+
+## Git Workflow Defaults
+
+**IMPORTANT:** Always follow these defaults unless the user explicitly requests otherwise:
+
+1. **Work in a branch** - Never commit directly to main. Create a feature branch:
+   ```bash
+   git checkout -b deps/update-packages
+   ```
+
+2. **Handle Dependabot PRs in main** - Merge existing Dependabot PRs to main first (they're already in PRs), then switch to a feature branch for additional updates.
+
+3. **Create a PR** - After committing changes, create a pull request:
+   ```bash
+   gh pr create --title "chore: update dependencies" --body "## Summary
+   - Updated X packages
+   - Fixed Y vulnerabilities
+
+   ## Changes
+   [list changes]"
+   ```
+
+4. **No attribution** - Do NOT include any of these in commits or PRs:
+   - `Co-Authored-By: Claude` or any Claude attribution
+   - `🤖 Generated with Claude Code` or similar footers
+   - Any AI/assistant attribution or emoji markers
 
 ## Prerequisites
 

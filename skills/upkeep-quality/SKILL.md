@@ -1,5 +1,6 @@
 ---
 name: upkeep-quality
+version: 0.1.2
 description: Generate and improve code quality scores for JS/TS projects
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
@@ -15,6 +16,32 @@ This skill helps you:
 2. Understand which areas need improvement
 3. Get specific, actionable recommendations
 4. Track quality improvements over time
+
+## Git Workflow Defaults
+
+**IMPORTANT:** Always follow these defaults unless the user explicitly requests otherwise:
+
+1. **Work in a branch** - Never commit directly to main. Create a feature branch:
+   ```bash
+   git checkout -b chore/improve-quality
+   ```
+
+2. **Create a PR** - After committing improvements, create a pull request:
+   ```bash
+   gh pr create --title "chore: improve code quality" --body "## Summary
+   - Improved quality score from X to Y (grade: Z)
+
+   ## Changes
+   [list improvements made]
+
+   ## Quality Report
+   [include before/after metrics]"
+   ```
+
+3. **No attribution** - Do NOT include any of these in commits or PRs:
+   - `Co-Authored-By: Claude` or any Claude attribution
+   - `🤖 Generated with Claude Code` or similar footers
+   - Any AI/assistant attribution or emoji markers
 
 ## Prerequisites
 
