@@ -70,9 +70,9 @@ function parseGlobalOptions(args: string[]): string[] {
     if (arg === "--verbose") {
       logger.level = "info";
     } else if (arg.startsWith("--log-level=")) {
-      const level = arg.split("=")[1];
-      const validLevels = ["trace", "debug", "info", "warn", "error", "fatal"];
-      if (validLevels.includes(level)) {
+      const level = arg.split("=")[1] ?? "";
+      const validLevels = ["trace", "debug", "info", "warn", "error", "fatal"] as const;
+      if (validLevels.includes(level as (typeof validLevels)[number])) {
         logger.level = level;
       } else {
         console.error(`Invalid log level: ${level}`);
