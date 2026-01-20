@@ -101,7 +101,6 @@ describe("install.sh", () => {
     });
 
     test("returns ~/.upkeep/bin if ~/.local/bin does not exist", async () => {
-      const home = process.env.HOME;
       // Use a modified HOME to simulate ~/.local/bin not existing
       const result = await runScriptFunction("get_install_dir", {
         HOME: "/tmp/fake-home-nonexistent",
