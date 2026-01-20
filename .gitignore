@@ -9,6 +9,7 @@ dist/
 
 # Test coverage
 coverage/
+!tests/fixtures/**/coverage/
 
 # Environment files
 .env
