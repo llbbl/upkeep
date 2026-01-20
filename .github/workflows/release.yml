@@ -59,6 +59,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -77,6 +79,15 @@ jobs:
           chmod +x release/upkeep-darwin-x64
           ls -la release/
 
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        id: changelog
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: CHANGELOG.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -85,6 +96,6 @@ jobs:
             release/upkeep-darwin-arm64
             release/upkeep-darwin-x64
             release/upkeep-windows-x64.exe
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.content }}
           draft: false
           prerelease: false
