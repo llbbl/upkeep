@@ -68,18 +68,18 @@ bump-version bump:
 
 update-all-versions:
   @VERSION=$(jq -r '.version' package.json); \
-  sed -i '' 's/const VERSION = "[^"]*";/const VERSION = "'"$$VERSION"'";/' src/cli/index.ts; \
-  sed -i '' 's/^version: .*/version: '"$$VERSION"'/' skills/upkeep-deps/SKILL.md; \
-  sed -i '' 's/^version: .*/version: '"$$VERSION"'/' skills/upkeep-audit/SKILL.md; \
-  sed -i '' 's/^version: .*/version: '"$$VERSION"'/' skills/upkeep-quality/SKILL.md; \
-  echo "Updated versions to $$VERSION"
+  sed -i '' 's/const VERSION = "[^"]*";/const VERSION = "'"$VERSION"'";/' src/cli/index.ts; \
+  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-deps/SKILL.md; \
+  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-audit/SKILL.md; \
+  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-quality/SKILL.md; \
+  echo "Updated versions to $VERSION"
 
 commit-version:
   @VERSION=$(jq -r '.version' package.json); \
   git add package.json src/cli/index.ts skills/*/SKILL.md; \
-  git commit -m "chore: bump version to v$$VERSION"; \
-  git tag v$$VERSION; \
-  echo "Created tag v$$VERSION"; \
+  git commit -m "chore: bump version to v$VERSION"; \
+  git tag v$VERSION; \
+  echo "Created tag v$VERSION"; \
   echo "Push with: git push origin main --tags"
 
 version-sync:

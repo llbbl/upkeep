@@ -37,7 +37,7 @@ Examples:
   upkeep risk next --from 14.0.0 --to 15.0.0
 `;
 
-const VERSION = "69671VERSION";
+const VERSION = "0.1.4";
 
 type CommandHandler = (args: string[]) => Promise<void>;
 
