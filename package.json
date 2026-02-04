@@ -1,6 +1,6 @@
 {
   "name": "upkeep",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "A JS/TS repository maintenance toolkit built with Bun",
   "main": "./src/cli/index.ts",
