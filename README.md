@@ -165,27 +165,27 @@ bun install
 
 ```bash
 # Run in development
-bun run dev -- detect
+just dev detect
 
 # Run tests
-bun test
+just test
 
 # Type check
-bun run typecheck
+just typecheck
 
 # Lint
-bun run lint
+just lint
 
 # Build binary
-bun run build
+just build
 
 # Build for all platforms
-bun run build:all
+just build-all
 
 # Version management
-make bump-patch   # 0.1.2 → 0.1.3
-make bump-minor   # 0.1.2 → 0.2.0
-make show-versions
+just bump-patch   # 0.1.2 → 0.1.3
+just bump-minor   # 0.1.2 → 0.2.0
+just show-versions
 ```
 
 ### Project Structure
