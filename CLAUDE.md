@@ -41,14 +41,14 @@ bun run build:all    # Build all platform binaries
 
 See `docs/RELEASING.md` for full instructions.
 
-**Use the Makefile for version management:**
+**Use the justfile for version management:**
 ```bash
-make bump-patch   # 0.1.2 → 0.1.3
-make bump-minor   # 0.1.2 → 0.2.0
-make bump-major   # 0.1.2 → 1.0.0
+just bump-patch   # 0.1.2 → 0.1.3
+just bump-minor   # 0.1.2 → 0.2.0
+just bump-major   # 0.1.2 → 1.0.0
 
-make show-versions  # Check all version values
-make version-sync   # Sync all files to package.json version
+just show-versions  # Check all version values
+just version-sync   # Sync all files to package.json version
 ```
 
 This automatically updates:
