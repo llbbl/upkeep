@@ -1,6 +1,6 @@
 ---
 name: upkeep-audit
-version: 0.1.3
+version: 69671VERSION
 description: Security audit with fix recommendations for JS/TS projects
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
