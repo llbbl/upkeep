@@ -1,0 +1,79 @@
+name: Auto Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  auto-release:
+    name: Determine Version and Tag
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Just
+        uses: extractions/setup-just@v2
+
+      - name: Determine next version
+        id: version
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest=$latest_tag" >> "$GITHUB_OUTPUT"
+
+          # Parse current version
+          version="${latest_tag#v}"
+          IFS='.' read -r major minor patch <<< "$version"
+
+          # Check commit messages since last tag for bump type
+          commits=$(git log "$latest_tag"..HEAD --pretty=format:"%s" 2>/dev/null || git log --pretty=format:"%s")
+
+          if echo "$commits" | grep -qE "^feat(\(.+\))?!:|^fix(\(.+\))?!:|^refactor(\(.+\))?!:|BREAKING CHANGE"; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif echo "$commits" | grep -qE "^feat(\(.+\))?:"; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+
+          next="v${major}.${minor}.${patch}"
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+          echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
+          echo "Next version: $next"
+
+      - name: Update versions
+        run: |
+          bun install --frozen-lockfile
+          just set-version ${{ steps.version.outputs.version }}
+
+      - name: Verify
+        run: |
+          just typecheck
+          just test
+
+      - name: Commit and tag
+        env:
+          TAG: ${{ steps.version.outputs.next }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json src/cli/index.ts skills/*/SKILL.md
+          git commit -m "chore(release): bump version to v$VERSION"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin main --follow-tags

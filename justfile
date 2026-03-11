@@ -82,6 +82,15 @@ commit-version:
   echo "Created tag v$VERSION"; \
   echo "Push with: git push origin main --tags"
 
+set-version version:
+  jq --arg v "{{version}}" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
+  @VERSION="{{version}}"; \
+  sed -i 's/const VERSION = "[^"]*";/const VERSION = "'"$VERSION"'";/' src/cli/index.ts; \
+  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-deps/SKILL.md; \
+  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-audit/SKILL.md; \
+  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-quality/SKILL.md; \
+  echo "Set all versions to $VERSION"
+
 version-sync:
   just update-all-versions
 
