@@ -8,11 +8,14 @@ permissions:
   contents: write
 
 jobs:
-  auto-release:
-    name: Determine Version and Tag
+  version:
+    name: Determine Version
     runs-on: ubuntu-latest
     # Skip version bump commits to avoid infinite loops
     if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    outputs:
+      tag: ${{ steps.version.outputs.next }}
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -33,11 +36,9 @@ jobs:
           latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "latest=$latest_tag" >> "$GITHUB_OUTPUT"
 
-          # Parse current version
           version="${latest_tag#v}"
           IFS='.' read -r major minor patch <<< "$version"
 
-          # Check commit messages since last tag for bump type
           commits=$(git log "$latest_tag"..HEAD --pretty=format:"%s" 2>/dev/null || git log --pretty=format:"%s")
 
           if echo "$commits" | grep -qE "^feat(\(.+\))?!:|^fix(\(.+\))?!:|^refactor(\(.+\))?!:|BREAKING CHANGE"; then
@@ -77,3 +78,99 @@ jobs:
           git commit -m "chore(release): bump version to v$VERSION"
           git tag -a "$TAG" -m "Release $TAG"
           git push origin main --follow-tags
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            os: ubuntu-latest
+            artifact: upkeep-linux-x64
+          - target: darwin-arm64
+            os: macos-latest
+            artifact: upkeep-darwin-arm64
+          - target: darwin-x64
+            os: macos-latest
+            artifact: upkeep-darwin-x64
+          - target: windows-x64
+            os: windows-latest
+            artifact: upkeep-windows-x64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build binary
+        run: bun run build:${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: [version, build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          cp artifacts/upkeep-linux-x64/upkeep-linux-x64 release/
+          cp artifacts/upkeep-darwin-arm64/upkeep-darwin-arm64 release/
+          cp artifacts/upkeep-darwin-x64/upkeep-darwin-x64 release/
+          cp artifacts/upkeep-windows-x64.exe/upkeep-windows-x64.exe release/
+          chmod +x release/upkeep-linux-x64
+          chmod +x release/upkeep-darwin-arm64
+          chmod +x release/upkeep-darwin-x64
+          ls -la release/
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        id: changelog
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          files: |
+            release/upkeep-linux-x64
+            release/upkeep-darwin-arm64
+            release/upkeep-darwin-x64
+            release/upkeep-windows-x64.exe
+          body: ${{ steps.changelog.outputs.content }}
+          draft: false
+          prerelease: false
