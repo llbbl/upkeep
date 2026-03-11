@@ -1,6 +1,6 @@
 ---
 name: upkeep-deps
-version: 0.1.5
+version: 0.1.6
 description: Upgrade JS/TS dependencies with risk assessment and Dependabot PR integration
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
