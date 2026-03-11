@@ -54,7 +54,7 @@ jobs:
           next="v${major}.${minor}.${patch}"
           echo "next=$next" >> "$GITHUB_OUTPUT"
           echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
-          echo "Next version: $next"
+          echo "Next version: $next (from $latest_tag)"
 
       - name: Update versions
         run: |
