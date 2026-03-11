@@ -1,6 +1,6 @@
 ---
 name: upkeep-quality
-version: 0.1.4
+version: 0.1.5
 description: Generate and improve code quality scores for JS/TS projects
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
