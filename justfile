@@ -69,14 +69,15 @@ bump-version bump:
 update-all-versions:
   @VERSION=$(jq -r '.version' package.json); \
   sed -i '' 's/const VERSION = "[^"]*";/const VERSION = "'"$VERSION"'";/' src/cli/index.ts; \
-  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-deps/SKILL.md; \
-  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-audit/SKILL.md; \
-  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-quality/SKILL.md; \
+  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/deps/SKILL.md; \
+  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/audit/SKILL.md; \
+  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/quality/SKILL.md; \
+  jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > .claude-plugin/plugin.json.tmp && mv .claude-plugin/plugin.json.tmp .claude-plugin/plugin.json; \
   echo "Updated versions to $VERSION"
 
 commit-version:
   @VERSION=$(jq -r '.version' package.json); \
-  git add package.json src/cli/index.ts skills/*/SKILL.md; \
+  git add package.json src/cli/index.ts skills/*/SKILL.md .claude-plugin/plugin.json; \
   git commit -m "chore: bump version to v$VERSION"; \
   git tag v$VERSION; \
   echo "Created tag v$VERSION"; \
@@ -86,9 +87,10 @@ set-version version:
   jq --arg v "{{version}}" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
   @VERSION="{{version}}"; \
   sed -i 's/const VERSION = "[^"]*";/const VERSION = "'"$VERSION"'";/' src/cli/index.ts; \
-  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-deps/SKILL.md; \
-  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-audit/SKILL.md; \
-  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/upkeep-quality/SKILL.md; \
+  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/deps/SKILL.md; \
+  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/audit/SKILL.md; \
+  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/quality/SKILL.md; \
+  jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > .claude-plugin/plugin.json.tmp && mv .claude-plugin/plugin.json.tmp .claude-plugin/plugin.json; \
   echo "Set all versions to $VERSION"
 
 version-sync:
@@ -98,6 +100,7 @@ show-versions:
   echo "=== Current Versions ==="
   echo "package.json:           $(jq -r '.version' package.json)"
   echo "src/cli/index.ts:       $(grep 'const VERSION' src/cli/index.ts | sed 's/.*"\(.*\)".*/\1/')"
-  echo "upkeep-deps/SKILL.md:   $(grep '^version:' skills/upkeep-deps/SKILL.md | sed 's/version: //')"
-  echo "upkeep-audit/SKILL.md:  $(grep '^version:' skills/upkeep-audit/SKILL.md | sed 's/version: //')"
-  echo "upkeep-quality/SKILL.md: $(grep '^version:' skills/upkeep-quality/SKILL.md | sed 's/version: //')"
+  echo "skills/deps/SKILL.md:    $(grep '^version:' skills/deps/SKILL.md | sed 's/version: //')"
+  echo "skills/audit/SKILL.md:   $(grep '^version:' skills/audit/SKILL.md | sed 's/version: //')"
+  echo "skills/quality/SKILL.md: $(grep '^version:' skills/quality/SKILL.md | sed 's/version: //')"
+  echo ".claude-plugin/plugin.json: $(jq -r '.version' .claude-plugin/plugin.json)"
