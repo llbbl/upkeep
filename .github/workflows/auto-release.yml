@@ -90,6 +90,9 @@ jobs:
           - target: linux-x64
             os: ubuntu-latest
             artifact: upkeep-linux-x64
+          - target: linux-arm64
+            os: ubuntu-latest
+            artifact: upkeep-linux-arm64
           - target: darwin-arm64
             os: macos-latest
             artifact: upkeep-darwin-arm64
@@ -141,17 +144,36 @@ jobs:
         with:
           path: artifacts
 
-      - name: Prepare release files
+      - name: Package release archives
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           mkdir -p release
-          cp artifacts/upkeep-linux-x64/upkeep-linux-x64 release/
-          cp artifacts/upkeep-darwin-arm64/upkeep-darwin-arm64 release/
-          cp artifacts/upkeep-darwin-x64/upkeep-darwin-x64 release/
-          cp artifacts/upkeep-windows-x64.exe/upkeep-windows-x64.exe release/
-          chmod +x release/upkeep-linux-x64
-          chmod +x release/upkeep-darwin-arm64
-          chmod +x release/upkeep-darwin-x64
+
+          # Tar+gzip each Unix binary as `upkeep` inside the archive, named
+          # upkeep_<version>_<os>_<arch>.tar.gz with Homebrew-style arch tokens.
+          archive() {
+            src="$1"; os="$2"; arch="$3"
+            cp "$src" upkeep
+            chmod +x upkeep
+            tar -czf "release/upkeep_${VERSION}_${os}_${arch}.tar.gz" upkeep
+            rm upkeep
+          }
+          archive artifacts/upkeep-linux-x64/upkeep-linux-x64       linux  amd64
+          archive artifacts/upkeep-linux-arm64/upkeep-linux-arm64   linux  arm64
+          archive artifacts/upkeep-darwin-x64/upkeep-darwin-x64     darwin amd64
+          archive artifacts/upkeep-darwin-arm64/upkeep-darwin-arm64 darwin arm64
+
+          # Windows ships as a raw .exe — Homebrew does not consume it.
+          cp artifacts/upkeep-windows-x64.exe/upkeep-windows-x64.exe \
+            "release/upkeep_${VERSION}_windows_amd64.exe"
+
+          # checksums.txt lists the sha256 of each tarball; the Homebrew tap
+          # downloads this to render per-platform url + sha256.
+          ( cd release && sha256sum upkeep_"${VERSION}"_*.tar.gz > checksums.txt )
+
           ls -la release/
+          cat release/checksums.txt
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
@@ -167,10 +189,9 @@ jobs:
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           files: |
-            release/upkeep-linux-x64
-            release/upkeep-darwin-arm64
-            release/upkeep-darwin-x64
-            release/upkeep-windows-x64.exe
+            release/*.tar.gz
+            release/*.exe
+            release/checksums.txt
           body: ${{ steps.changelog.outputs.content }}
           draft: false
           prerelease: false

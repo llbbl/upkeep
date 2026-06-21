@@ -45,7 +45,18 @@ This skill helps you:
 
 ## Prerequisites
 
-- `./bin/upkeep` binary must be available in this skill's directory
+- The `upkeep` binary must be installed and available on your `PATH`. Install it with:
+  ```bash
+  brew install llbbl/tap/upkeep
+  ```
+  (or download a binary from the [GitHub releases](https://github.com/llbbl/upkeep/releases)).
+- Before running any `upkeep` command, verify it is on `PATH` and stop with a clear message if not:
+  ```bash
+  command -v upkeep >/dev/null 2>&1 || {
+    echo "upkeep not found on PATH — install it with: brew install llbbl/tap/upkeep" >&2
+    exit 1
+  }
+  ```
 
 ## Quality Metrics
 
@@ -75,7 +86,7 @@ The quality score is calculated from 6 weighted metrics:
 ### Step 1: Generate Quality Report
 
 ```bash
-./bin/upkeep quality --json
+upkeep quality --json
 ```
 
 This returns:
@@ -125,7 +136,7 @@ Many issues can be fixed automatically:
 
 User: "How healthy is my project?"
 
-1. Run `./bin/upkeep quality --json`
+1. Run `upkeep quality --json`
 2. Present the grade and score prominently
 3. Show the breakdown chart
 4. Highlight areas needing attention
@@ -138,7 +149,7 @@ User: "How healthy is my project?"
 
 ```bash
 # Check outdated packages
-./bin/upkeep deps --json
+upkeep deps --json
 
 # Update all patch versions (usually safe)
 <pm> update
@@ -148,7 +159,7 @@ User: "How healthy is my project?"
 
 ```bash
 # Find vulnerabilities
-./bin/upkeep audit --json
+upkeep audit --json
 
 # Fix what's available
 <pm> audit fix  # npm
@@ -206,15 +217,15 @@ Consider adding `knip` or `ts-prune` for advanced detection.
 
 | Command | Purpose |
 |---------|---------|
-| `./bin/upkeep quality` | Generate quality report |
-| `./bin/upkeep detect` | Check project configuration |
-| `./bin/upkeep deps` | Dependency freshness details |
-| `./bin/upkeep audit` | Security details |
+| `upkeep quality` | Generate quality report |
+| `upkeep detect` | Check project configuration |
+| `upkeep deps` | Dependency freshness details |
+| `upkeep audit` | Security details |
 
 ## Tracking Progress
 
 After making improvements:
-1. Re-run `./bin/upkeep quality --json`
+1. Re-run `upkeep quality --json`
 2. Compare new score to previous
 3. Celebrate improvements!
 4. Plan next improvements if needed

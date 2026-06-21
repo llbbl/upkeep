@@ -46,14 +46,25 @@ This skill helps you:
 
 ## Prerequisites
 
-- `./bin/upkeep` binary must be available in this skill's directory
+- The `upkeep` binary must be installed and available on your `PATH`. Install it with:
+  ```bash
+  brew install llbbl/tap/upkeep
+  ```
+  (or download a binary from the [GitHub releases](https://github.com/llbbl/upkeep/releases)).
+- Before running any `upkeep` command, verify it is on `PATH` and stop with a clear message if not:
+  ```bash
+  command -v upkeep >/dev/null 2>&1 || {
+    echo "upkeep not found on PATH — install it with: brew install llbbl/tap/upkeep" >&2
+    exit 1
+  }
+  ```
 
 ## Workflow
 
 ### Step 1: Run Security Audit
 
 ```bash
-./bin/upkeep audit --json
+upkeep audit --json
 ```
 
 This returns vulnerabilities with:
@@ -82,7 +93,7 @@ For each vulnerability, explain:
 For each fixable vulnerability:
 
 ```bash
-./bin/upkeep risk <package> --from <current> --to <fix-version> --json
+upkeep risk <package> --from <current> --to <fix-version> --json
 ```
 
 This helps understand:
@@ -102,11 +113,11 @@ This helps understand:
 **For transitive dependencies:**
 The fix often requires updating a parent dependency. Check which direct dependency pulls in the vulnerable package and update that instead.
 
-Use `./bin/upkeep imports <parent-package>` to understand the impact.
+Use `upkeep imports <parent-package>` to understand the impact.
 
 ### Step 5: Verify Fixes
 
-1. Re-run audit: `./bin/upkeep audit --json`
+1. Re-run audit: `upkeep audit --json`
 2. Run tests: `<pm> test`
 3. Check for regressions
 
@@ -122,8 +133,8 @@ Some vulnerabilities may not have fixes yet. Options:
 
 User: "Check my project for security issues"
 
-1. Run `./bin/upkeep detect --json` to understand the project
-2. Run `./bin/upkeep audit --json` to scan for vulnerabilities
+1. Run `upkeep detect --json` to understand the project
+2. Run `upkeep audit --json` to scan for vulnerabilities
 3. Present findings grouped by severity
 4. For each fixable vulnerability:
    - Explain the issue
@@ -146,11 +157,11 @@ User: "Check my project for security issues"
 
 | Command | Purpose |
 |---------|---------|
-| `./bin/upkeep audit` | Run security audit |
-| `./bin/upkeep detect` | Detect package manager |
-| `./bin/upkeep risk <pkg>` | Assess upgrade risk |
-| `./bin/upkeep imports <pkg>` | Find package usage |
-| `./bin/upkeep deps` | List all outdated packages |
+| `upkeep audit` | Run security audit |
+| `upkeep detect` | Detect package manager |
+| `upkeep risk <pkg>` | Assess upgrade risk |
+| `upkeep imports <pkg>` | Find package usage |
+| `upkeep deps` | List all outdated packages |
 
 ## Handling Common Scenarios
 
@@ -169,7 +180,7 @@ Lower priority since it doesn't affect production. Still fix if:
 
 ### Breaking Change Required for Fix
 
-1. Assess impact with `./bin/upkeep risk`
+1. Assess impact with `upkeep risk`
 2. Check migration guides
 3. Consider if the security risk outweighs the migration effort
 4. For critical vulns, usually worth the effort

@@ -45,7 +45,18 @@ This skill helps you upgrade dependencies safely by:
 
 ## Prerequisites
 
-- `./bin/upkeep` binary must be available in this skill's directory
+- The `upkeep` binary must be installed and available on your `PATH`. Install it with:
+  ```bash
+  brew install llbbl/tap/upkeep
+  ```
+  (or download a binary from the [GitHub releases](https://github.com/llbbl/upkeep/releases)).
+- Before running any `upkeep` command, verify it is on `PATH` and stop with a clear message if not:
+  ```bash
+  command -v upkeep >/dev/null 2>&1 || {
+    echo "upkeep not found on PATH — install it with: brew install llbbl/tap/upkeep" >&2
+    exit 1
+  }
+  ```
 - `gh` CLI for Dependabot PR integration (optional but recommended)
 
 ## Workflow
@@ -53,7 +64,7 @@ This skill helps you upgrade dependencies safely by:
 ### Step 1: Detect Project Configuration
 
 ```bash
-./bin/upkeep detect --json
+upkeep detect --json
 ```
 
 This tells you:
@@ -64,7 +75,7 @@ This tells you:
 ### Step 2: Check for Dependabot PRs (if gh CLI available)
 
 ```bash
-./bin/upkeep dependabot --json
+upkeep dependabot --json
 ```
 
 Dependabot PRs are pre-tested and often the safest to merge first.
@@ -72,7 +83,7 @@ Dependabot PRs are pre-tested and often the safest to merge first.
 ### Step 3: Get Outdated Packages
 
 ```bash
-./bin/upkeep deps --json
+upkeep deps --json
 ```
 
 This returns all outdated packages categorized by update type (major/minor/patch).
@@ -81,7 +92,7 @@ This returns all outdated packages categorized by update type (major/minor/patch
 
 Present upgrades to the user in this priority order:
 1. **Dependabot PRs** - Already have PRs ready, checks may be passing
-2. **Security fixes** - Check `./bin/upkeep audit --json` for vulnerabilities
+2. **Security fixes** - Check `upkeep audit --json` for vulnerabilities
 3. **Patch updates** - Lowest risk, bug fixes only
 4. **Minor updates** - New features, should be backward compatible
 5. **Major updates** - Breaking changes, highest risk
@@ -91,7 +102,7 @@ Present upgrades to the user in this priority order:
 Before upgrading, assess the risk:
 
 ```bash
-./bin/upkeep risk <package> --json
+upkeep risk <package> --json
 ```
 
 This analyzes:
@@ -136,9 +147,9 @@ For major upgrades, use explicit version:
 
 User: "Update my dependencies"
 
-1. Run `./bin/upkeep detect --json` to understand the project
-2. Run `./bin/upkeep deps --json` to see what's outdated
-3. Run `./bin/upkeep audit --json` to check for security issues
+1. Run `upkeep detect --json` to understand the project
+2. Run `upkeep deps --json` to see what's outdated
+3. Run `upkeep audit --json` to check for security issues
 4. Present a prioritized list to the user
 5. For approved upgrades, run risk assessment and execute
 6. Test after each upgrade
@@ -161,9 +172,9 @@ Only do this if:
 
 | Command | Purpose |
 |---------|---------|
-| `./bin/upkeep detect` | Detect project configuration |
-| `./bin/upkeep deps` | List outdated packages |
-| `./bin/upkeep audit` | Security vulnerability scan |
-| `./bin/upkeep imports <pkg>` | Find where package is used |
-| `./bin/upkeep risk <pkg>` | Assess upgrade risk |
-| `./bin/upkeep dependabot` | List Dependabot PRs |
+| `upkeep detect` | Detect project configuration |
+| `upkeep deps` | List outdated packages |
+| `upkeep audit` | Security vulnerability scan |
+| `upkeep imports <pkg>` | Find where package is used |
+| `upkeep risk <pkg>` | Assess upgrade risk |
+| `upkeep dependabot` | List Dependabot PRs |
