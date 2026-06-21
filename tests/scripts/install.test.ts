@@ -43,7 +43,7 @@ describe("install.sh", () => {
       const result = await runScriptFunction("detect_platform");
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toMatch(/^(linux|darwin|windows)-(x64|arm64)$/);
+      expect(result.stdout.trim()).toMatch(/^(linux|darwin|windows)-(amd64|arm64)$/);
     });
 
     test("detects darwin on macOS", async () => {
@@ -54,36 +54,16 @@ describe("install.sh", () => {
       }
 
       const result = await runScriptFunction("detect_platform");
-      expect(result.stdout.trim()).toMatch(/^darwin-(x64|arm64)$/);
+      expect(result.stdout.trim()).toMatch(/^darwin-(amd64|arm64)$/);
     });
   });
 
-  describe("get_download_url()", () => {
-    test("generates latest URL correctly", async () => {
-      const result = await runScriptFunction('get_download_url "darwin-arm64" "latest"');
+  describe("resolve_version()", () => {
+    test("passes through an explicit version unchanged", async () => {
+      const result = await runScriptFunction('resolve_version "v1.2.3"');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe(
-        "https://github.com/llbbl/upkeep/releases/latest/download/upkeep-darwin-arm64"
-      );
-    });
-
-    test("generates versioned URL correctly", async () => {
-      const result = await runScriptFunction('get_download_url "linux-x64" "v1.0.0"');
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe(
-        "https://github.com/llbbl/upkeep/releases/download/v1.0.0/upkeep-linux-x64"
-      );
-    });
-
-    test("generates Windows URL correctly", async () => {
-      const result = await runScriptFunction('get_download_url "windows-x64" "latest"');
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe(
-        "https://github.com/llbbl/upkeep/releases/latest/download/upkeep-windows-x64"
-      );
+      expect(result.stdout.trim()).toBe("v1.2.3");
     });
   });
 
@@ -153,22 +133,6 @@ describe("install.sh", () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout.trim()).toBe("v1.2.3");
     });
-
-    test("CLAUDE_SKILLS_DIR defaults to ~/.claude/skills", async () => {
-      const result = await runScriptFunction('echo "$SKILLS_DIR"');
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe(`${process.env.HOME}/.claude/skills`);
-    });
-
-    test("CLAUDE_SKILLS_DIR can be overridden", async () => {
-      const result = await runScriptFunction('echo "$SKILLS_DIR"', {
-        CLAUDE_SKILLS_DIR: "/custom/skills",
-      });
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe("/custom/skills");
-    });
   });
 
   describe("script syntax", () => {
@@ -193,11 +157,10 @@ describe("install.sh", () => {
     test("has required functions", async () => {
       const functions = [
         "detect_platform",
-        "get_download_url",
+        "resolve_version",
         "get_install_dir",
-        "download_binary",
+        "download_file",
         "install_binary",
-        "install_skills",
         "show_path_instructions",
         "verify_installation",
         "main",
@@ -241,7 +204,7 @@ describe("install.sh", () => {
       const result = await runBash(script);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe("linux-x64");
+      expect(result.stdout.trim()).toBe("linux-amd64");
     });
 
     test("handles amd64 architecture", async () => {
@@ -258,7 +221,7 @@ describe("install.sh", () => {
       const result = await runBash(script);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe("linux-x64");
+      expect(result.stdout.trim()).toBe("linux-amd64");
     });
 
     test("handles arm64 architecture", async () => {
@@ -300,7 +263,7 @@ describe("install.sh", () => {
     test("prefers curl over wget", async () => {
       const script = `
         source "${SCRIPT_PATH}"
-        type download_binary | grep -q 'curl'
+        type download_file | grep -q 'curl'
       `;
       const result = await runBash(script);
 
@@ -310,7 +273,7 @@ describe("install.sh", () => {
     test("falls back to wget when curl unavailable", async () => {
       const script = `
         source "${SCRIPT_PATH}"
-        type download_binary | grep -q 'wget'
+        type download_file | grep -q 'wget'
       `;
       const result = await runBash(script);
 
@@ -318,17 +281,21 @@ describe("install.sh", () => {
     });
   });
 
-  describe("skill names", () => {
-    test("installs correct skills", async () => {
+  describe("binary-only installer", () => {
+    test("does not install skills (no install_skills function)", async () => {
+      const result = await runScriptFunction("type install_skills || true");
+
+      expect(result.stdout).not.toContain("install_skills is a function");
+    });
+
+    test("points users at the plugin marketplace for skills", async () => {
       const script = `
         source "${SCRIPT_PATH}"
-        type install_skills | grep -o 'upkeep-deps\\|upkeep-audit\\|upkeep-quality' | sort -u
+        type verify_installation | grep -q 'plugin install upkeep@llbbl-upkeep'
       `;
       const result = await runBash(script);
 
-      expect(result.stdout).toContain("upkeep-deps");
-      expect(result.stdout).toContain("upkeep-audit");
-      expect(result.stdout).toContain("upkeep-quality");
+      expect(result.exitCode).toBe(0);
     });
   });
 

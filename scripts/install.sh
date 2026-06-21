@@ -5,7 +5,6 @@ set -euo pipefail
 # Usage: curl -fsSL https://raw.githubusercontent.com/llbbl/upkeep/main/scripts/install.sh | bash
 
 VERSION="${UPKEEP_VERSION:-latest}"
-SKILLS_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -38,7 +37,7 @@ detect_platform() {
     esac
 
     case "$(uname -m)" in
-        x86_64|amd64) arch="x64" ;;
+        x86_64|amd64) arch="amd64" ;;
         arm64|aarch64) arch="arm64" ;;
         *) error "Unsupported architecture: $(uname -m)" ;;
     esac
@@ -46,17 +45,26 @@ detect_platform() {
     echo "${os}-${arch}"
 }
 
-# Get download URL for the binary
-get_download_url() {
-    local platform="$1"
-    local version="$2"
-    local base_url="https://github.com/llbbl/upkeep/releases"
-
-    if [[ "$version" == "latest" ]]; then
-        echo "${base_url}/latest/download/upkeep-${platform}"
-    else
-        echo "${base_url}/download/${version}/upkeep-${platform}"
+# Resolve "latest" to a concrete version tag (e.g. v0.2.0).
+# Release assets are versioned (upkeep_<version>_<os>_<arch>.tar.gz), so we
+# need the actual tag even for "latest".
+resolve_version() {
+    local version="$1"
+    if [[ "$version" != "latest" ]]; then
+        echo "$version"
+        return
     fi
+
+    local api="https://api.github.com/repos/llbbl/upkeep/releases/latest"
+    local tag=""
+    if command -v curl &> /dev/null; then
+        tag=$(curl -fsSL "$api" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    elif command -v wget &> /dev/null; then
+        tag=$(wget -qO- "$api" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    fi
+
+    [[ -n "$tag" ]] || error "Could not resolve the latest version from GitHub. Set UPKEEP_VERSION explicitly (e.g. UPKEEP_VERSION=v0.2.0)."
+    echo "$tag"
 }
 
 # Determine install directory
@@ -70,22 +78,20 @@ get_install_dir() {
     fi
 }
 
-# Download binary
-download_binary() {
+# Download a file (no chmod — caller decides what to do with it)
+download_file() {
     local url="$1"
     local dest="$2"
 
-    info "Downloading upkeep from $url"
+    info "Downloading $url"
 
     if command -v curl &> /dev/null; then
-        curl -fsSL "$url" -o "$dest"
+        curl -fsSL "$url" -o "$dest" || error "Download failed: $url"
     elif command -v wget &> /dev/null; then
-        wget -q "$url" -O "$dest"
+        wget -q "$url" -O "$dest" || error "Download failed: $url"
     else
         error "Neither curl nor wget found. Please install one of them."
     fi
-
-    chmod +x "$dest"
 }
 
 # Install binary to global location
@@ -100,70 +106,40 @@ install_binary() {
     # Create install directory if it doesn't exist
     mkdir -p "$install_dir"
 
-    local binary_name="upkeep"
-    local url
-    url=$(get_download_url "$platform" "$VERSION")
+    local os="${platform%-*}"
+    local arch="${platform#*-}"
 
-    # Handle Windows extension
-    if [[ "$platform" == windows-* ]]; then
-        binary_name="upkeep.exe"
-        url="${url}.exe"
+    local version
+    version=$(resolve_version "$VERSION")   # e.g. v0.2.0
+    local ver="${version#v}"                # e.g. 0.2.0
+    local base_url="https://github.com/llbbl/upkeep/releases/download/${version}"
+
+    # Windows ships as a raw .exe; Unix platforms ship as gzipped tarballs
+    # containing a single binary named `upkeep`.
+    if [[ "$os" == "windows" ]]; then
+        local binary_path="$install_dir/upkeep.exe"
+        download_file "${base_url}/upkeep_${ver}_windows_${arch}.exe" "$binary_path"
+        chmod +x "$binary_path"
+        info "Installed upkeep to $binary_path"
+        echo "$binary_path"
+        return
     fi
 
-    local binary_path="$install_dir/$binary_name"
-    download_binary "$url" "$binary_path"
+    local asset="upkeep_${ver}_${os}_${arch}.tar.gz"
+    local tmp
+    tmp=$(mktemp -d)
+    download_file "${base_url}/${asset}" "$tmp/$asset"
+    tar -xzf "$tmp/$asset" -C "$tmp" || error "Failed to extract $asset"
+
+    local binary_path="$install_dir/upkeep"
+    mv "$tmp/upkeep" "$binary_path"
+    chmod +x "$binary_path"
+    rm -rf "$tmp"
 
     info "Installed upkeep to $binary_path"
 
-    # Return the path for use by install_skills
+    # Return the path for the caller
     echo "$binary_path"
-}
-
-# Install Claude Code skills with symlinks to the binary
-install_skills() {
-    local binary_path="$1"
-    local platform
-    platform=$(detect_platform)
-
-    info "Installing Claude Code skills to $SKILLS_DIR"
-
-    local skills=("upkeep-deps" "upkeep-audit" "upkeep-quality")
-    local base_url="https://raw.githubusercontent.com/llbbl/upkeep/main/skills"
-
-    local binary_name="upkeep"
-    if [[ "$platform" == windows-* ]]; then
-        binary_name="upkeep.exe"
-    fi
-
-    for skill in "${skills[@]}"; do
-        local skill_dir="$SKILLS_DIR/$skill"
-        local bin_dir="$skill_dir/bin"
-
-        mkdir -p "$bin_dir"
-
-        # Download skill file
-        info "Installing skill: $skill"
-        if command -v curl &> /dev/null; then
-            curl -fsSL "$base_url/$skill/SKILL.md" -o "$skill_dir/SKILL.md"
-        else
-            wget -q "$base_url/$skill/SKILL.md" -O "$skill_dir/SKILL.md"
-        fi
-
-        # Remove existing binary/symlink
-        rm -f "$bin_dir/$binary_name"
-
-        # Try symlink first (saves disk space), fall back to copy
-        if [[ "$platform" != windows-* ]] && ln -s "$binary_path" "$bin_dir/$binary_name" 2>/dev/null; then
-            info "  Linked to $binary_path"
-        else
-            # Copy on Windows or if symlink fails
-            cp "$binary_path" "$bin_dir/$binary_name"
-            chmod +x "$bin_dir/$binary_name"
-            info "  Copied binary to $bin_dir"
-        fi
-    done
-
-    info "Skills installed successfully"
 }
 
 # Show PATH instructions
@@ -209,10 +185,11 @@ verify_installation() {
     echo "  upkeep audit      # Security audit"
     echo "  upkeep quality    # Quality report"
     echo ""
-    echo "Claude Code skills installed:"
-    echo "  /upkeep-deps      # Dependency upgrades"
-    echo "  /upkeep-audit     # Security fixes"
-    echo "  /upkeep-quality   # Quality improvements"
+    echo "Claude Code skills are distributed separately via the plugin marketplace:"
+    echo "  /plugin marketplace add llbbl/upkeep"
+    echo "  /plugin install upkeep@llbbl-upkeep"
+    echo ""
+    echo "Then use /upkeep:audit, /upkeep:deps, /upkeep:quality in Claude Code."
 }
 
 # Main
@@ -229,7 +206,6 @@ main() {
 
     local binary_path
     binary_path=$(install_binary)
-    install_skills "$binary_path"
     verify_installation "$binary_path"
 }
 
