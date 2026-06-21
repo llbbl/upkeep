@@ -1,5 +1,7 @@
 .claude/
-docs/
+
+# Private/scratch working dir (drafts, specs, outreach — not for publishing)
+_/
 
 # Dependencies
 node_modules/
