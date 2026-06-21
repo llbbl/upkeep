@@ -1,11 +1,11 @@
 ---
-name: upkeep-deps
+name: deps
 version: 0.2.0
 description: Upgrade JS/TS dependencies with risk assessment and Dependabot PR integration
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
 
-# /upkeep-deps
+# /upkeep:deps
 
 Upgrade JavaScript/TypeScript dependencies with intelligent risk assessment.
 
