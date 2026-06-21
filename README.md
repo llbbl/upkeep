@@ -12,34 +12,44 @@ A comprehensive maintenance toolkit for JavaScript and TypeScript repositories, 
 - **Risk Assessment** - Evaluate upgrade risk before making changes
 - **Dependabot Integration** - Manage Dependabot PRs from the command line
 
+upkeep has two parts that install independently:
+
+- **The `upkeep` CLI binary** — via Homebrew or the install script (below).
+- **The Claude Code skills** — via the [plugin marketplace](#claude-code-skills) (`/plugin install upkeep@llbbl-upkeep`).
+
 ## Installation
 
-### Quick Install (Recommended)
+### Homebrew (Recommended)
+
+```bash
+brew install llbbl/tap/upkeep
+```
+
+### Install Script
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/llbbl/upkeep/main/scripts/install.sh | bash
 ```
 
-This installs:
-- The `upkeep` CLI binary to `~/.local/bin/` (or `~/.upkeep/bin/` if that doesn't exist)
-- Claude Code skills to `~/.claude/skills/` for AI-powered workflows
+This installs the `upkeep` CLI binary to `~/.local/bin/` (or `~/.upkeep/bin/` if that doesn't exist). It no longer installs the skills — those come from the plugin marketplace (see [Claude Code Skills](#claude-code-skills)).
 
 To install a specific version:
 
 ```bash
-UPKEEP_VERSION=v0.1.3 curl -fsSL https://raw.githubusercontent.com/llbbl/upkeep/main/scripts/install.sh | bash
+UPKEEP_VERSION=v0.2.0 curl -fsSL https://raw.githubusercontent.com/llbbl/upkeep/main/scripts/install.sh | bash
 ```
 
 ### Manual Installation
 
-Download the appropriate binary from [releases](https://github.com/llbbl/upkeep/releases):
+Download the appropriate archive from [releases](https://github.com/llbbl/upkeep/releases) and extract the `upkeep` binary (verify against `checksums.txt`):
 
-| Platform | Binary |
-|----------|--------|
-| Linux x64 | `upkeep-linux-x64` |
-| macOS ARM64 (Apple Silicon) | `upkeep-darwin-arm64` |
-| macOS x64 (Intel) | `upkeep-darwin-x64` |
-| Windows x64 | `upkeep-windows-x64.exe` |
+| Platform | Asset |
+|----------|-------|
+| Linux x64 | `upkeep_<version>_linux_amd64.tar.gz` |
+| Linux ARM64 | `upkeep_<version>_linux_arm64.tar.gz` |
+| macOS ARM64 (Apple Silicon) | `upkeep_<version>_darwin_arm64.tar.gz` |
+| macOS x64 (Intel) | `upkeep_<version>_darwin_amd64.tar.gz` |
+| Windows x64 | `upkeep_<version>_windows_amd64.exe` |
 
 ### From Source
 
@@ -122,23 +132,30 @@ upkeep --log-level=debug audit
 
 ## Claude Code Skills
 
-upkeep includes skills for Claude Code that provide AI-powered maintenance workflows. Each skill has access to the upkeep binary:
+upkeep ships its Claude Code skills as a plugin distributed through its own marketplace. Install them with:
 
-### `/upkeep-deps`
+```text
+/plugin marketplace add llbbl/upkeep
+/plugin install upkeep@llbbl-upkeep
+```
+
+This installs all three skills, namespaced under the `upkeep` plugin. The skills shell out to the `upkeep` CLI, so make sure the binary is installed and on your `PATH` first (see [Installation](#installation)).
+
+### `/upkeep:deps`
 
 Upgrade dependencies with intelligent risk assessment:
 - Prioritizes Dependabot PRs and security fixes
 - Assesses risk before each upgrade
 - Runs tests and rolls back on failure
 
-### `/upkeep-audit`
+### `/upkeep:audit`
 
 Security audit with fix recommendations:
 - Explains each vulnerability
 - Shows dependency paths
 - Guides through safe fixes
 
-### `/upkeep-quality`
+### `/upkeep:quality`
 
 Improve project health:
 - Explains quality metrics
@@ -203,9 +220,13 @@ src/
     └── logger.ts             # Pino logging
 
 skills/
-├── upkeep-deps/              # Dependency upgrade skill
-├── upkeep-audit/             # Security audit skill
-└── upkeep-quality/           # Quality improvement skill
+├── deps/                     # Dependency upgrade skill (/upkeep:deps)
+├── audit/                    # Security audit skill (/upkeep:audit)
+└── quality/                  # Quality improvement skill (/upkeep:quality)
+
+.claude-plugin/
+├── plugin.json              # Plugin manifest (the `upkeep` plugin)
+└── marketplace.json         # Marketplace manifest (`llbbl-upkeep`)
 
 tests/
 ├── cli/                      # CLI integration tests

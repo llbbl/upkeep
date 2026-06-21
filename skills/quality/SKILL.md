@@ -1,11 +1,11 @@
 ---
-name: upkeep-quality
+name: quality
 version: 0.2.0
 description: Generate and improve code quality scores for JS/TS projects
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
 
-# /upkeep-quality
+# /upkeep:quality
 
 Generate comprehensive quality reports and actionable improvement recommendations.
 
@@ -114,10 +114,10 @@ For metrics scoring below 70, explain:
 Many issues can be fixed automatically:
 
 **Dependency Freshness:**
-- Use `/upkeep-deps` skill to update packages
+- Use `/upkeep:deps` skill to update packages
 
 **Security:**
-- Use `/upkeep-audit` skill to fix vulnerabilities
+- Use `/upkeep:audit` skill to fix vulnerabilities
 
 **TypeScript Strictness:**
 - Edit tsconfig.json to enable strict flags
