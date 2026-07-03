@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { analyzeTsConfig, internals } from "../../../src/lib/analyzers/tsconfig.ts";
 
-const { extractStrictFlags, calculateScore, generateDetails, FLAG_SCORES } = internals;
+const { stripJsonComments, extractStrictFlags, calculateScore, generateDetails, FLAG_SCORES } =
+  internals;
 
 // Path to test fixtures
 const FIXTURES_PATH = `${import.meta.dir}/../../fixtures`;
@@ -9,6 +10,40 @@ const QUALITY_FIXTURES_PATH = `${FIXTURES_PATH}/quality-test-project`;
 const MINIMAL_FIXTURES_PATH = `${FIXTURES_PATH}/minimal-project`;
 
 describe("tsconfig analyzer", () => {
+  describe("stripJsonComments", () => {
+    it("preserves comment markers inside strings", () => {
+      const content = `{
+        // Keep slash-containing path strings intact.
+        "compilerOptions": {
+          "paths": {
+            "@/*": ["./src/*"],
+            "url": ["https://example.com/*"]
+          },
+          "strict": true
+        }
+      }`;
+
+      const parsed = JSON.parse(stripJsonComments(content));
+
+      expect(parsed.compilerOptions.paths["@/*"]).toEqual(["./src/*"]);
+      expect(parsed.compilerOptions.paths.url).toEqual(["https://example.com/*"]);
+      expect(parsed.compilerOptions.strict).toBe(true);
+    });
+
+    it("removes line and block comments", () => {
+      const content = `{
+        /* block comment */
+        "compilerOptions": {
+          "strict": true // line comment
+        }
+      }`;
+
+      const parsed = JSON.parse(stripJsonComments(content));
+
+      expect(parsed.compilerOptions.strict).toBe(true);
+    });
+  });
+
   describe("extractStrictFlags", () => {
     it("extracts all flags when present", () => {
       const config = {

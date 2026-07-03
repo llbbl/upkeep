@@ -1,3 +1,6 @@
+# Local agent/context files
+AGENTS.md
+.codex/
 .claude/
 
 # Private/scratch working dir (drafts, specs, outreach — not for publishing)
