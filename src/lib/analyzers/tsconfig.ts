@@ -64,6 +64,68 @@ const FLAG_SCORES = {
 } as const;
 
 /**
+ * Remove JSONC comments without treating `//` or `/*` inside strings as comments.
+ */
+function stripJsonComments(content: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const next = content[i + 1];
+
+    if (!char) {
+      break;
+    }
+
+    if (inString) {
+      result += char;
+
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      result += char;
+      continue;
+    }
+
+    if (char === "/" && next === "/") {
+      while (i < content.length && content[i] !== "\n") {
+        i++;
+      }
+      result += "\n";
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      i += 2;
+      while (i < content.length && !(content[i] === "*" && content[i + 1] === "/")) {
+        if (content[i] === "\n") {
+          result += "\n";
+        }
+        i++;
+      }
+      i++;
+      continue;
+    }
+
+    result += char;
+  }
+
+  return result;
+}
+
+/**
  * Parse tsconfig.json and resolve extends chain.
  */
 async function parseTsConfig(cwd: string): Promise<TsConfigJson | null> {
@@ -77,10 +139,7 @@ async function parseTsConfig(cwd: string): Promise<TsConfigJson | null> {
     }
 
     const content = await file.text();
-    // Remove comments from JSON (tsconfig allows comments)
-    const jsonWithoutComments = content.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-
-    const config = JSON.parse(jsonWithoutComments) as TsConfigJson;
+    const config = JSON.parse(stripJsonComments(content)) as TsConfigJson;
 
     // If extends is present, we should merge with the base config
     // For simplicity, we only look at the top-level config for now
@@ -228,6 +287,7 @@ export async function analyzeTsConfig(
 // Export internals for testing
 export const internals = {
   parseTsConfig,
+  stripJsonComments,
   extractStrictFlags,
   calculateScore,
   generateDetails,
