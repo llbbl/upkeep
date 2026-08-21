@@ -73,11 +73,12 @@ update-all-versions:
   sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/audit/SKILL.md; \
   sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/quality/SKILL.md; \
   jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > .claude-plugin/plugin.json.tmp && mv .claude-plugin/plugin.json.tmp .claude-plugin/plugin.json; \
+  jq --arg v "$VERSION" '.metadata.version = $v' .claude-plugin/marketplace.json > .claude-plugin/marketplace.json.tmp && mv .claude-plugin/marketplace.json.tmp .claude-plugin/marketplace.json; \
   echo "Updated versions to $VERSION"
 
 commit-version:
   @VERSION=$(jq -r '.version' package.json); \
-  git add package.json src/cli/index.ts skills/*/SKILL.md .claude-plugin/plugin.json; \
+  git add package.json src/cli/index.ts skills/*/SKILL.md .claude-plugin/plugin.json .claude-plugin/marketplace.json; \
   git commit -m "chore: bump version to v$VERSION"; \
   git tag v$VERSION; \
   echo "Created tag v$VERSION"; \
@@ -91,6 +92,7 @@ set-version version:
   sed -i 's/^version: .*/version: '"$VERSION"'/' skills/audit/SKILL.md; \
   sed -i 's/^version: .*/version: '"$VERSION"'/' skills/quality/SKILL.md; \
   jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > .claude-plugin/plugin.json.tmp && mv .claude-plugin/plugin.json.tmp .claude-plugin/plugin.json; \
+  jq --arg v "$VERSION" '.metadata.version = $v' .claude-plugin/marketplace.json > .claude-plugin/marketplace.json.tmp && mv .claude-plugin/marketplace.json.tmp .claude-plugin/marketplace.json; \
   echo "Set all versions to $VERSION"
 
 version-sync:
@@ -104,3 +106,4 @@ show-versions:
   echo "skills/audit/SKILL.md:   $(grep '^version:' skills/audit/SKILL.md | sed 's/version: //')"
   echo "skills/quality/SKILL.md: $(grep '^version:' skills/quality/SKILL.md | sed 's/version: //')"
   echo ".claude-plugin/plugin.json: $(jq -r '.version' .claude-plugin/plugin.json)"
+  echo ".claude-plugin/marketplace.json: $(jq -r '.metadata.version' .claude-plugin/marketplace.json)"
