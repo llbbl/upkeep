@@ -62,7 +62,17 @@ bump-major:
   just bump-version major
 
 bump-version bump:
-  pnpm version {{bump}} --no-git-tag-version
+  @CURRENT=$(jq -r '.version' package.json); \
+  IFS='.' read -r major minor patch <<< "$CURRENT"; \
+  case "{{bump}}" in \
+    major) major=$((major + 1)); minor=0; patch=0 ;; \
+    minor) minor=$((minor + 1)); patch=0 ;; \
+    patch) patch=$((patch + 1)) ;; \
+    *) echo "Unknown bump type: {{bump}} (expected major, minor, or patch)" >&2; exit 1 ;; \
+  esac; \
+  NEXT="${major}.${minor}.${patch}"; \
+  jq --arg v "$NEXT" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json; \
+  echo "Bumped $CURRENT -> $NEXT"
   just update-all-versions
   just commit-version
 
@@ -99,11 +109,11 @@ version-sync:
   just update-all-versions
 
 show-versions:
-  echo "=== Current Versions ==="
-  echo "package.json:           $(jq -r '.version' package.json)"
-  echo "src/cli/index.ts:       $(grep 'const VERSION' src/cli/index.ts | sed 's/.*"\(.*\)".*/\1/')"
-  echo "skills/deps/SKILL.md:    $(grep '^version:' skills/deps/SKILL.md | sed 's/version: //')"
-  echo "skills/audit/SKILL.md:   $(grep '^version:' skills/audit/SKILL.md | sed 's/version: //')"
-  echo "skills/quality/SKILL.md: $(grep '^version:' skills/quality/SKILL.md | sed 's/version: //')"
-  echo ".claude-plugin/plugin.json: $(jq -r '.version' .claude-plugin/plugin.json)"
-  echo ".claude-plugin/marketplace.json: $(jq -r '.metadata.version' .claude-plugin/marketplace.json)"
+  @echo "=== Current Versions ==="
+  @echo "package.json:                    $(jq -r '.version' package.json)"
+  @echo "src/cli/index.ts:                $(grep 'const VERSION' src/cli/index.ts | sed 's/.*"\(.*\)".*/\1/')"
+  @echo "skills/deps/SKILL.md:            $(grep '^version:' skills/deps/SKILL.md | sed 's/version: //')"
+  @echo "skills/audit/SKILL.md:           $(grep '^version:' skills/audit/SKILL.md | sed 's/version: //')"
+  @echo "skills/quality/SKILL.md:         $(grep '^version:' skills/quality/SKILL.md | sed 's/version: //')"
+  @echo ".claude-plugin/plugin.json:      $(jq -r '.version' .claude-plugin/plugin.json)"
+  @echo ".claude-plugin/marketplace.json: $(jq -r '.metadata.version' .claude-plugin/marketplace.json)"
