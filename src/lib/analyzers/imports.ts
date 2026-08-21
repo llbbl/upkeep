@@ -1,4 +1,11 @@
-import ts from "typescript";
+// `typescript-api` is an alias for typescript@6 (see package.json). TypeScript 7
+// is a Go port whose npm root export is only the version string — the JS
+// compiler API used below (createSourceFile, forEachChild, SyntaxKind, the
+// isX type guards) moved behind `typescript/unstable/*` and is backed by a
+// per-platform native executable, which cannot be bundled into the
+// cross-compiled binaries `bun build --compile` produces. TypeScript 7 still
+// typechecks this repo; only this runtime AST parsing stays on the v6 API.
+import ts from "typescript-api";
 import { createLogger } from "../logger.ts";
 
 const log = createLogger("imports");
