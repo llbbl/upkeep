@@ -16,19 +16,20 @@ jobs:
     outputs:
       tag: ${{ steps.version.outputs.next }}
       version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.bump.outputs.sha }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Install Just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v4
 
       - name: Determine next version
         id: version
@@ -66,18 +67,32 @@ jobs:
         run: |
           just typecheck
           just test
+          # Compile for the host target too. A break here fails the run before
+          # the bump commit is pushed, rather than after a tag already exists.
+          just build
 
-      - name: Commit and tag
+      # The tag is deliberately NOT created here. It is pushed by the release
+      # job once every platform binary has built, so a compile failure can no
+      # longer strand a tag on the repo with no release attached to it.
+      - name: Commit and push version bump
+        id: bump
         env:
-          TAG: ${{ steps.version.outputs.next }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json src/cli/index.ts skills/*/SKILL.md .claude-plugin/plugin.json .claude-plugin/marketplace.json
-          git commit -m "chore(release): bump version to v$VERSION"
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin main --follow-tags
+          # If an earlier run pushed this bump but failed before tagging, the
+          # version files are already correct and there is nothing to commit.
+          # Reuse that commit and carry on to the build rather than dying on an
+          # empty `git commit`, which would wedge releases permanently.
+          if git diff --cached --quiet; then
+            echo "Version files already at v$VERSION; reusing the existing commit."
+          else
+            git commit -m "chore(release): bump version to v$VERSION"
+            git push origin main
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build ${{ matrix.target }}
@@ -105,14 +120,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
-          ref: ${{ needs.version.outputs.tag }}
+          ref: ${{ needs.version.outputs.sha }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -121,7 +136,7 @@ jobs:
         run: bun run build:${{ matrix.target }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: dist/${{ matrix.artifact }}
@@ -134,13 +149,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
-          ref: ${{ needs.version.outputs.tag }}
+          ref: ${{ needs.version.outputs.sha }}
           fetch-depth: 0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -175,6 +190,24 @@ jobs:
           ls -la release/
           cat release/checksums.txt
 
+      # Everything above this point can fail without leaving a trace on the
+      # repo. The tag is the first irreversible act, so it goes last -- after
+      # all five binaries exist and have been packaged.
+      - name: Create and push tag
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Idempotent so a re-run after a partial failure can complete rather
+          # than dying because the tag it is trying to create already exists.
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists locally."
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+          fi
+          git push origin "$TAG" || echo "Tag $TAG is already on origin."
+
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         id: changelog
@@ -185,7 +218,7 @@ jobs:
           OUTPUT: CHANGELOG.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           files: |

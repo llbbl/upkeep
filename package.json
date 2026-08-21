@@ -42,7 +42,7 @@
     "typescript-api": "npm:typescript@6.0.3"
   },
   "engines": {
-    "bun": ">=1.0.0"
+    "bun": ">=1.3.0"
   },
   "dependencies": {
     "pino": "^10.3.1"
