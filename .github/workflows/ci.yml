@@ -31,3 +31,10 @@ jobs:
 
       - name: Test
         run: bun test
+
+      # Compiling here is what stops a build break from reaching main. Lint,
+      # typecheck and tests all pass on code that `bun build --compile` cannot
+      # bundle, so without this step the first failure signal arrives during
+      # the release run, after a version bump has already been pushed.
+      - name: Build binary
+        run: bun run build
