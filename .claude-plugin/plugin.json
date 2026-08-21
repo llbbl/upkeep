@@ -1,7 +1,7 @@
 {
   "name": "upkeep",
   "description": "AI-powered maintenance workflows for JS/TS repos: security audits, dependency upgrades, and quality scoring. Requires the `upkeep` CLI on PATH (brew install llbbl/tap/upkeep).",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "author": {
     "name": "Logan Lindquist Land",
     "email": "logan.lindquist@gmail.com"

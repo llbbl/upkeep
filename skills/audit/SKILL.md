@@ -1,6 +1,6 @@
 ---
 name: audit
-version: 0.4.3
+version: 0.4.4
 description: Security audit with fix recommendations for JS/TS projects
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
