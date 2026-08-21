@@ -1,0 +1,37 @@
+version: 2
+
+updates:
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # This alias intentionally keeps the analyzer on TypeScript 6 while the
+      # CLI uses TypeScript 7. See src/lib/analyzers/imports.ts.
+      - dependency-name: typescript-api
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
+    commit-message:
+      prefix: "chore(actions)"
+    groups:
+      all-actions:
+        patterns:
+          - "*"
