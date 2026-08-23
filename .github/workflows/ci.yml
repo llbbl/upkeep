@@ -3,8 +3,12 @@ name: CI
 on:
   push:
     branches: [main]
+  # Deliberately unfiltered by base branch. Scoping this to `branches: [main]`
+  # meant a PR stacked on another PR received no test run at all -- and a
+  # `mergeStateStatus` of CLEAN then reads as "nothing is blocking" rather than
+  # "tests passed". A stacked PR sat green-looking with 12 failing tests until
+  # it was retargeted onto main.
   pull_request:
-    branches: [main]
 
 jobs:
   test:
