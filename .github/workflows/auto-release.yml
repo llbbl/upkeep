@@ -31,6 +31,17 @@ jobs:
       - name: Install Just
         uses: extractions/setup-just@v4
 
+      # The Verify step below runs `just test`, which includes the CLI
+      # integration tests. Those shell out to the package manager the fixture
+      # declares (pnpm), and ubuntu-latest does not ship pnpm. Without this the
+      # release is blocked: Verify fails, so no version bump is ever pushed.
+      # Mirrors the same step in ci.yml -- both workflows run the suite, so both
+      # need the package manager.
+      - name: Setup pnpm (required by the CLI integration tests)
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.9.0
+
       - name: Determine next version
         id: version
         run: |
