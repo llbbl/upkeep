@@ -1,256 +1,70 @@
 # upkeep
 
-A comprehensive maintenance toolkit for JavaScript and TypeScript repositories, built with [Bun](https://bun.sh).
+A maintenance toolkit for JavaScript and TypeScript repositories, built with
+[Bun](https://bun.sh).
 
-## Features
+upkeep answers the questions that come up when you inherit a codebase and need to
+know what shape it is in: what is outdated, what is vulnerable, what is dead
+weight, and how healthy the whole thing is. It works with npm, yarn, pnpm, and
+bun without configuration.
 
-- **Package Manager Agnostic** - Auto-detects and works with npm, yarn, pnpm, and bun
-- **Dependency Analysis** - Find outdated packages with update type classification
-- **Security Auditing** - Scan for vulnerabilities across all package managers
-- **Import Analysis** - Track where packages are used with AST-based scanning
-- **Quality Scoring** - Get a health score for your project (A-F grade)
-- **Risk Assessment** - Evaluate upgrade risk before making changes
-- **Dependabot Integration** - Manage Dependabot PRs from the command line
+It ships as two parts that install independently — a **CLI** that emits JSON, and
+a set of **Claude Code skills** that use it.
 
-upkeep has two parts that install independently:
-
-- **The `upkeep` CLI binary** — via Homebrew or the install script (below).
-- **The Claude Code skills** — via the [plugin marketplace](#claude-code-skills) (`/plugin install upkeep@llbbl-upkeep`).
-
-## Installation
-
-### Homebrew (Recommended)
+## Install
 
 ```bash
 brew install llbbl/tap/upkeep
 ```
 
-### Install Script
+Or via the install script:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/llbbl/upkeep/main/scripts/install.sh | bash
 ```
 
-This installs the `upkeep` CLI binary to `~/.local/bin/` (or `~/.upkeep/bin/` if that doesn't exist). It no longer installs the skills — those come from the plugin marketplace (see [Claude Code Skills](#claude-code-skills)).
+Other methods — manual download, from source, checksum verification — are in
+[docs/INSTALLATION.md](docs/INSTALLATION.md).
 
-To install a specific version:
-
-```bash
-UPKEEP_VERSION=v0.2.0 curl -fsSL https://raw.githubusercontent.com/llbbl/upkeep/main/scripts/install.sh | bash
-```
-
-### Manual Installation
-
-Download the appropriate archive from [releases](https://github.com/llbbl/upkeep/releases) and extract the `upkeep` binary (verify against `checksums.txt`):
-
-| Platform | Asset |
-|----------|-------|
-| Linux x64 | `upkeep_<version>_linux_amd64.tar.gz` |
-| Linux ARM64 | `upkeep_<version>_linux_arm64.tar.gz` |
-| macOS ARM64 (Apple Silicon) | `upkeep_<version>_darwin_arm64.tar.gz` |
-| macOS x64 (Intel) | `upkeep_<version>_darwin_amd64.tar.gz` |
-| Windows x64 | `upkeep_<version>_windows_amd64.exe` |
-
-### From Source
+## Use it
 
 ```bash
-git clone https://github.com/llbbl/upkeep.git
-cd upkeep
-bun install
-bun run build
+upkeep detect            # what kind of project is this?
+upkeep deps              # what is outdated?
+upkeep audit             # what is vulnerable?
+upkeep quality           # how healthy is it, A-F?
+upkeep imports lodash    # where is this package actually used?
 ```
 
-## Usage
+Every command emits JSON, so it pipes into `jq` and composes with other tooling.
+Full command reference, flags, and example output: [docs/CLI.md](docs/CLI.md).
 
-### CLI Commands
-
-```bash
-# Detect project configuration
-upkeep detect
-
-# Analyze outdated dependencies
-upkeep deps
-
-# Security vulnerability scan
-upkeep audit
-
-# Find where a package is imported
-upkeep imports lodash
-
-# Assess upgrade risk
-upkeep risk next --from 14.0.0 --to 15.0.0
-
-# Get project quality score
-upkeep quality
-
-# List Dependabot PRs (requires gh CLI)
-upkeep dependabot
-
-# Enable verbose output
-upkeep --verbose detect
-
-# Set specific log level
-upkeep --log-level=debug audit
-```
-
-### Example Output
-
-#### `upkeep detect`
-
-```json
-{
-  "packageManager": "pnpm",
-  "lockfile": "pnpm-lock.yaml",
-  "typescript": true,
-  "biome": true,
-  "prettier": false,
-  "testRunner": "vitest",
-  "coverage": true,
-  "ci": "github-actions"
-}
-```
-
-#### `upkeep quality`
-
-```json
-{
-  "score": 85,
-  "grade": "B",
-  "breakdown": {
-    "dependencyFreshness": { "score": 90, "weight": 20, "details": "3 of 45 packages outdated" },
-    "security": { "score": 100, "weight": 25, "details": "No vulnerabilities" },
-    "testCoverage": { "score": 75, "weight": 20, "details": "75% line coverage" },
-    "typescriptStrictness": { "score": 80, "weight": 10, "details": "Missing: exactOptionalPropertyTypes" },
-    "linting": { "score": 100, "weight": 10, "details": "Biome configured" },
-    "deadCode": { "score": 70, "weight": 15, "details": "noUnusedLocals enabled" }
-  },
-  "recommendations": [
-    { "priority": "medium", "action": "Update 3 outdated packages" }
-  ]
-}
-```
-
-## Claude Code Skills
-
-upkeep ships its Claude Code skills as a plugin distributed through its own marketplace. Install them with:
+## Claude Code skills
 
 ```text
 /plugin marketplace add llbbl/upkeep
 /plugin install upkeep@llbbl-upkeep
 ```
 
-This installs all four skills, namespaced under the `upkeep` plugin. The skills shell out to the `upkeep` CLI, so make sure the binary is installed and on your `PATH` first (see [Installation](#installation)).
+Four skills, each answering a different question:
 
-### `/upkeep:deps`
+| Skill | Question |
+|-------|----------|
+| `/upkeep:deps` | What is outdated? |
+| `/upkeep:audit` | What is vulnerable? |
+| `/upkeep:quality` | How healthy is this project? |
+| `/upkeep:trim` | What are we carrying but not using? |
 
-Upgrade dependencies with intelligent risk assessment:
-- Prioritizes Dependabot PRs and security fixes
-- Assesses risk before each upgrade
-- Runs tests and rolls back on failure
+The skills shell out to the CLI, so install the binary first. Details:
+[docs/SKILLS.md](docs/SKILLS.md).
 
-### `/upkeep:audit`
+## Documentation
 
-Security audit with fix recommendations:
-- Explains each vulnerability
-- Shows dependency paths
-- Guides through safe fixes
-
-### `/upkeep:quality`
-
-Improve project health:
-- Explains quality metrics
-- Provides actionable improvements
-- Tracks progress over time
-
-### `/upkeep:trim`
-
-Find dependency weight you carry but never use:
-- Traces why each package is in the tree
-- Distinguishes unused weight from outdated or vulnerable packages
-- Prefers overriding to a patched version over removal
-
-## Development
-
-### Prerequisites
-
-- [Bun](https://bun.sh) >= 1.0
-- Node.js >= 20 (for compatibility testing)
-- `gh` CLI (optional, for Dependabot features)
-
-### Setup
-
-```bash
-git clone https://github.com/llbbl/upkeep.git
-cd upkeep
-bun install
-```
-
-### Commands
-
-```bash
-# Run in development
-just dev detect
-
-# Run tests
-just test
-
-# Type check
-just typecheck
-
-# Lint
-just lint
-
-# Build binary
-just build
-
-# Build for all platforms
-just build-all
-
-# Version management
-just bump-patch   # 0.1.2 → 0.1.3
-just bump-minor   # 0.1.2 → 0.2.0
-just show-versions
-```
-
-### Project Structure
-
-```
-src/
-├── cli/
-│   ├── index.ts              # CLI entry point
-│   └── commands/             # Command implementations
-└── lib/
-    ├── analyzers/            # Core analysis modules
-    ├── scorers/              # Quality and risk scoring
-    ├── github/               # GitHub/Dependabot integration
-    ├── utils/                # Utilities (exec, semver)
-    └── logger.ts             # Pino logging
-
-skills/
-├── deps/                     # Dependency upgrade skill (/upkeep:deps)
-├── audit/                    # Security audit skill (/upkeep:audit)
-├── quality/                  # Quality improvement skill (/upkeep:quality)
-└── trim/                     # Unused-dependency skill (/upkeep:trim)
-
-.claude-plugin/
-├── plugin.json              # Plugin manifest (the `upkeep` plugin)
-└── marketplace.json         # Marketplace manifest (`llbbl-upkeep`)
-
-tests/
-├── cli/                      # CLI integration tests
-├── lib/                      # Unit tests
-└── fixtures/                 # Test fixtures
-```
-
-## Configuration
-
-upkeep works out of the box with no configuration. It automatically detects:
-
-- Package manager from lockfiles
-- TypeScript from tsconfig.json
-- Linting from biome.json / .eslintrc
-- Test runner from config files or package.json scripts
-- CI from .github/workflows
+- [Installation](docs/INSTALLATION.md) — every install method, plus verification
+- [CLI reference](docs/CLI.md) — commands, flags, example output, configuration
+- [Claude Code skills](docs/SKILLS.md) — what each skill does and when to reach for it
+- [Development](docs/DEVELOPMENT.md) — setup, commands, project structure
+- [Releasing](docs/RELEASING.md) — how the automated release pipeline works
 
 ## License
 
