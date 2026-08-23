@@ -18,6 +18,26 @@ build:
 build-all:
   bun run build:all
 
+# Compile for the host platform and install onto PATH, for testing local changes
+# without waiting on a release (and then on the Homebrew tap's 24h hold window).
+# Override the destination with UPKEEP_INSTALL_DIR.
+install-local: build
+  @INSTALL_DIR="${UPKEEP_INSTALL_DIR:-}"; \
+  if [ -z "$INSTALL_DIR" ]; then \
+    if [ -d "$HOME/.local/bin" ]; then \
+      INSTALL_DIR="$HOME/.local/bin"; \
+    else \
+      INSTALL_DIR="$HOME/.upkeep/bin"; \
+    fi; \
+  fi; \
+  mkdir -p "$INSTALL_DIR"; \
+  install -m 755 dist/upkeep "$INSTALL_DIR/upkeep"; \
+  echo "Installed $("$INSTALL_DIR/upkeep" --version) to $INSTALL_DIR/upkeep"; \
+  case ":$PATH:" in \
+    *":$INSTALL_DIR:"*) ;; \
+    *) echo "NOTE: $INSTALL_DIR is not on your PATH; add it to use \`upkeep\` directly." ;; \
+  esac
+
 test:
   bun test
 
@@ -26,6 +46,10 @@ test-watch:
 
 test-coverage:
   bun run test:coverage
+
+# Run tests with coverage and enforce the aggregate floor (what CI runs).
+coverage-check:
+  ./scripts/check-coverage.sh
 
 typecheck:
   bun run typecheck

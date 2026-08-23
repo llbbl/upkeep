@@ -3,8 +3,12 @@ name: CI
 on:
   push:
     branches: [main]
+  # Deliberately unfiltered by base branch. Scoping this to `branches: [main]`
+  # meant a PR stacked on another PR received no test run at all -- and a
+  # `mergeStateStatus` of CLEAN then reads as "nothing is blocking" rather than
+  # "tests passed". A stacked PR sat green-looking with 12 failing tests until
+  # it was retargeted onto main.
   pull_request:
-    branches: [main]
 
 jobs:
   test:
@@ -20,6 +24,16 @@ jobs:
         with:
           bun-version: 1.4.0
 
+      # The CLI integration tests shell out to whichever package manager the
+      # fixture declares, and tests/fixtures/sample-project ships a
+      # pnpm-lock.yaml. ubuntu-latest provides npm and yarn but not pnpm, so
+      # without this the audit/deps integration tests get an empty stdout and
+      # fail on JSON.parse.
+      - name: Setup pnpm (required by the CLI integration tests)
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.9.0
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -29,8 +43,8 @@ jobs:
       - name: Type check
         run: bun run typecheck
 
-      - name: Test
-        run: bun test
+      - name: Test and coverage gate
+        run: ./scripts/check-coverage.sh
 
       # Compiling here is what stops a build break from reaching main. Lint,
       # typecheck and tests all pass on code that `bun build --compile` cannot

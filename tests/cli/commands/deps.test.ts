@@ -54,10 +54,15 @@ describe("upkeep deps", () => {
     });
   });
 
-  // Note: The following tests require running actual package manager commands
-  // which can be slow. They are skipped by default but can be enabled for
-  // integration testing by removing the .skip.
-  describe.skip("integration tests (require package manager)", () => {
+  // These shell out to a real package manager, so they are slower than the rest
+  // of the suite (~11s for the integration blocks across this file and
+  // deps.test.ts). They run everywhere -- locally and in CI -- because they are
+  // the only tests that exercise the CLI end to end.
+  //
+  // Note they contribute nothing to the coverage numbers: runCli uses
+  // Bun.spawn, and coverage instrumentation does not follow into a child
+  // process. Their value is end-to-end verification, not coverage.
+  describe("integration tests (require package manager)", () => {
     describe("output format", () => {
       test("outputs valid JSON", async () => {
         const { stdout } = await runCli(["deps"], getFixturePath("sample-project"));
