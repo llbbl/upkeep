@@ -47,7 +47,7 @@ A release must update **all** of these in lockstep. Both `just set-version` and
 
 - `package.json`
 - `src/cli/index.ts` (the `VERSION` constant)
-- `skills/audit/SKILL.md`, `skills/deps/SKILL.md`, `skills/quality/SKILL.md` (frontmatter)
+- `skills/audit/SKILL.md`, `skills/deps/SKILL.md`, `skills/quality/SKILL.md`, `skills/trim/SKILL.md` (frontmatter)
 - `.claude-plugin/plugin.json`
 - `.claude-plugin/marketplace.json` (`metadata.version`)
 

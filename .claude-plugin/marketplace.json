@@ -12,7 +12,7 @@
     {
       "name": "upkeep",
       "source": "./",
-      "description": "Security audits, dependency upgrades, and quality scoring for JS/TS repos. Bundles the /upkeep:audit, /upkeep:deps, and /upkeep:quality skills."
+      "description": "Security audits, dependency upgrades, quality scoring, and unused-dependency trimming for JS/TS repos. Bundles the /upkeep:audit, /upkeep:deps, /upkeep:quality, and /upkeep:trim skills."
     }
   ]
 }

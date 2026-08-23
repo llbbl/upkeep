@@ -139,7 +139,7 @@ upkeep ships its Claude Code skills as a plugin distributed through its own mark
 /plugin install upkeep@llbbl-upkeep
 ```
 
-This installs all three skills, namespaced under the `upkeep` plugin. The skills shell out to the `upkeep` CLI, so make sure the binary is installed and on your `PATH` first (see [Installation](#installation)).
+This installs all four skills, namespaced under the `upkeep` plugin. The skills shell out to the `upkeep` CLI, so make sure the binary is installed and on your `PATH` first (see [Installation](#installation)).
 
 ### `/upkeep:deps`
 
@@ -161,6 +161,13 @@ Improve project health:
 - Explains quality metrics
 - Provides actionable improvements
 - Tracks progress over time
+
+### `/upkeep:trim`
+
+Find dependency weight you carry but never use:
+- Traces why each package is in the tree
+- Distinguishes unused weight from outdated or vulnerable packages
+- Prefers overriding to a patched version over removal
 
 ## Development
 
@@ -222,7 +229,8 @@ src/
 skills/
 ├── deps/                     # Dependency upgrade skill (/upkeep:deps)
 ├── audit/                    # Security audit skill (/upkeep:audit)
-└── quality/                  # Quality improvement skill (/upkeep:quality)
+├── quality/                  # Quality improvement skill (/upkeep:quality)
+└── trim/                     # Unused-dependency skill (/upkeep:trim)
 
 .claude-plugin/
 ├── plugin.json              # Plugin manifest (the `upkeep` plugin)
