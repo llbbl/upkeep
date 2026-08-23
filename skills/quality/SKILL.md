@@ -1,6 +1,6 @@
 ---
 name: quality
-version: 0.5.0
+version: 0.5.1
 description: Generate and improve code quality scores for JS/TS projects
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
