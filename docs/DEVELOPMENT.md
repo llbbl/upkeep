@@ -14,8 +14,17 @@ cd upkeep
 just install
 ```
 
-`just install` installs dependencies. It does not install the binary onto your
-`PATH` — use `just build` and run `./dist/upkeep` to exercise a local build.
+`just install` installs dependencies. To put a locally built binary on your
+`PATH` — for trying a change without waiting on a release and the tap's 24-hour
+hold — use:
+
+```bash
+just install-local
+```
+
+That compiles for the host platform and installs to `~/.local/bin` (falling back
+to `~/.upkeep/bin`). Override the destination with `UPKEEP_INSTALL_DIR`. It warns
+if the target directory is not on your `PATH`.
 
 ## Commands
 
@@ -32,6 +41,7 @@ Run `just --list` for the full set. The ones you will use most:
 | `just lint-fix` | Lint and apply fixes |
 | `just check` | Lint, typecheck, and test — run this before pushing |
 | `just build` | Compile the binary for the host platform to `dist/upkeep` |
+| `just install-local` | Compile and install onto your `PATH` for local testing |
 | `just build-all` | Compile for all five release targets |
 | `just clean` | Remove `dist/` |
 
