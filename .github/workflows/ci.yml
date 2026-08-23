@@ -29,8 +29,8 @@ jobs:
       - name: Type check
         run: bun run typecheck
 
-      - name: Test
-        run: bun test
+      - name: Test and coverage gate
+        run: ./scripts/check-coverage.sh
 
       # Compiling here is what stops a build break from reaching main. Lint,
       # typecheck and tests all pass on code that `bun build --compile` cannot

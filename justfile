@@ -47,6 +47,10 @@ test-watch:
 test-coverage:
   bun run test:coverage
 
+# Run tests with coverage and enforce the aggregate floor (what CI runs).
+coverage-check:
+  ./scripts/check-coverage.sh
+
 typecheck:
   bun run typecheck
 
