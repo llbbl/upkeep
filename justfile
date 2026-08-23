@@ -82,6 +82,7 @@ update-all-versions:
   sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/deps/SKILL.md; \
   sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/audit/SKILL.md; \
   sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/quality/SKILL.md; \
+  sed -i '' 's/^version: .*/version: '"$VERSION"'/' skills/trim/SKILL.md; \
   jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > .claude-plugin/plugin.json.tmp && mv .claude-plugin/plugin.json.tmp .claude-plugin/plugin.json; \
   jq --arg v "$VERSION" '.metadata.version = $v' .claude-plugin/marketplace.json > .claude-plugin/marketplace.json.tmp && mv .claude-plugin/marketplace.json.tmp .claude-plugin/marketplace.json; \
   echo "Updated versions to $VERSION"
@@ -101,6 +102,7 @@ set-version version:
   sed -i 's/^version: .*/version: '"$VERSION"'/' skills/deps/SKILL.md; \
   sed -i 's/^version: .*/version: '"$VERSION"'/' skills/audit/SKILL.md; \
   sed -i 's/^version: .*/version: '"$VERSION"'/' skills/quality/SKILL.md; \
+  sed -i 's/^version: .*/version: '"$VERSION"'/' skills/trim/SKILL.md; \
   jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > .claude-plugin/plugin.json.tmp && mv .claude-plugin/plugin.json.tmp .claude-plugin/plugin.json; \
   jq --arg v "$VERSION" '.metadata.version = $v' .claude-plugin/marketplace.json > .claude-plugin/marketplace.json.tmp && mv .claude-plugin/marketplace.json.tmp .claude-plugin/marketplace.json; \
   echo "Set all versions to $VERSION"
@@ -115,5 +117,6 @@ show-versions:
   @echo "skills/deps/SKILL.md:            $(grep '^version:' skills/deps/SKILL.md | sed 's/version: //')"
   @echo "skills/audit/SKILL.md:           $(grep '^version:' skills/audit/SKILL.md | sed 's/version: //')"
   @echo "skills/quality/SKILL.md:         $(grep '^version:' skills/quality/SKILL.md | sed 's/version: //')"
+  @echo "skills/trim/SKILL.md:            $(grep '^version:' skills/trim/SKILL.md | sed 's/version: //')"
   @echo ".claude-plugin/plugin.json:      $(jq -r '.version' .claude-plugin/plugin.json)"
   @echo ".claude-plugin/marketplace.json: $(jq -r '.metadata.version' .claude-plugin/marketplace.json)"
