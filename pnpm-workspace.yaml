@@ -1,0 +1,5 @@
+# This repository is a single project; tests/fixtures are independent projects.
+packages: []
+
+# Dependency lifecycle scripts require an explicit review before enabling them.
+allowBuilds: {}

@@ -7,7 +7,7 @@ help:
   @just --list
 
 install:
-  bun install
+  pnpm install --frozen-lockfile
 
 dev *args:
   bun run dev {{args}}

@@ -1,5 +1,6 @@
 # Local agent/context files
 AGENTS.md
+CLAUDE.md
 .codex/
 .claude/
 

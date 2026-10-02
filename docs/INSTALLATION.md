@@ -62,12 +62,13 @@ sha256sum -c checksums.txt --ignore-missing
 
 ## From source
 
-Requires [Bun](https://bun.sh) >= 1.3.
+Requires [Bun](https://bun.sh) >= 1.3 and
+[pnpm](https://pnpm.io/installation) 12.8.1 (pinned in `package.json`).
 
 ```bash
 git clone https://github.com/llbbl/upkeep.git
 cd upkeep
-bun install
+pnpm install --frozen-lockfile
 bun run build
 ```
 
