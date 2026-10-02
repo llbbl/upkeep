@@ -1,7 +1,8 @@
 version: 2
 
 updates:
-  - package-ecosystem: bun
+  # Dependabot's npm ecosystem supports pnpm-lock.yaml.
+  - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly

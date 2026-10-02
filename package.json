@@ -2,6 +2,7 @@
   "name": "upkeep",
   "version": "0.6.0",
   "type": "module",
+  "packageManager": "pnpm@12.8.1",
   "description": "A JS/TS repository maintenance toolkit built with Bun",
   "main": "./src/cli/index.ts",
   "bin": {

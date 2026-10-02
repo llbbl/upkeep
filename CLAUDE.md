@@ -30,7 +30,7 @@ chore: bump biome to v2.4.0
 ## Build & Test
 
 ```bash
-bun install          # Install dependencies
+pnpm install --frozen-lockfile # Install dependencies (package.json pins pnpm)
 bun test             # Run tests
 bun run lint         # Lint code
 bun run typecheck    # Type check

@@ -3,6 +3,7 @@
 ## Prerequisites
 
 - [Bun](https://bun.sh) >= 1.3 (CI pins 1.4.0)
+- [pnpm](https://pnpm.io/installation) 12.8.1, pinned in `package.json`
 - [`just`](https://github.com/casey/just) — the task runner for every command below
 - `gh` CLI (optional, for the Dependabot features)
 
@@ -14,7 +15,18 @@ cd upkeep
 just install
 ```
 
-`just install` installs dependencies. To put a locally built binary on your
+`just install` runs `pnpm install --frozen-lockfile`. pnpm installs dependencies;
+Bun remains the runtime for scripts, tests, and compiled binaries. CI uses
+`pnpm/setup@v3` to read the pnpm version from `package.json`, install Bun 1.4.0,
+cache the pnpm store, and perform one frozen-lockfile install per job.
+No Node version is declared by this repository.
+
+To update dependencies, run `pnpm install` and commit the generated
+`pnpm-lock.yaml`. `pnpm-workspace.yaml` keeps fixture projects outside the
+workspace and requires explicit approval for dependency build scripts through
+`allowBuilds`.
+
+To put a locally built binary on your
 `PATH` — for trying a change without waiting on a release and the tap's 24-hour
 hold — use:
 
@@ -78,7 +90,7 @@ reasoning is recorded at the top of `src/lib/analyzers/imports.ts`.
 
 Two consequences worth knowing:
 
-- `bun outdated` permanently reports `typescript 6.0.3 -> 7.0.2`. That row is the
+- `pnpm outdated` reports a newer version for the TypeScript 6 alias. That row is the
   intentionally pinned alias, not a stale dependency. Do not "fix" it.
 - The `typecheck` script points at `./node_modules/typescript/bin/tsc` explicitly,
   because both packages ship a `tsc` binary.
