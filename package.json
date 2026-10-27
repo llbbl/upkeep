@@ -1,6 +1,6 @@
 {
   "name": "upkeep",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "type": "module",
   "packageManager": "pnpm@12.15.0",
   "description": "A JS/TS repository maintenance toolkit built with Bun",
