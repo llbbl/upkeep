@@ -63,7 +63,7 @@ sha256sum -c checksums.txt --ignore-missing
 ## From source
 
 Requires [Bun](https://bun.sh) >= 1.3 and
-[pnpm](https://pnpm.io/installation) 12.8.1 (pinned in `package.json`).
+[pnpm](https://pnpm.io/installation) 12.15.0 (pinned in `package.json`).
 
 ```bash
 git clone https://github.com/llbbl/upkeep.git

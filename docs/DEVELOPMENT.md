@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - [Bun](https://bun.sh) >= 1.3 (CI pins 1.4.0)
-- [pnpm](https://pnpm.io/installation) 12.8.1, pinned in `package.json`
+- [pnpm](https://pnpm.io/installation) 12.15.0, pinned in `package.json`
 - [`just`](https://github.com/casey/just) — the task runner for every command below
 - `gh` CLI (optional, for the Dependabot features)
 
