@@ -71,7 +71,7 @@ describe("detectPackageManager", () => {
       // No lockfile, so it should use corepack spec
       expect(result.name).toBe("pnpm");
       expect(result.lockfile).toBe(null);
-      expect(result.corepackSpec).toBe("pnpm@8.15.0");
+      expect(result.corepackSpec).toBe("pnpm@12.15.0");
       expect(result.installCommand).toBe("pnpm install");
       expect(result.upgradeCommand).toBe("pnpm update");
     });
