@@ -1,4 +1,4 @@
-FROM oven/bun:1.4.0 AS bun
+FROM oven/bun:1.4.4 AS bun
 
 FROM node:24.13.0-bookworm-slim AS tools
 RUN apt-get update \
