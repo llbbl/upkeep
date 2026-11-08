@@ -1,3 +1,4 @@
+import "../../setup/require-sandbox.test.ts";
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as auditModule from "../../../src/lib/analyzers/audit.ts";
 import * as coverageModule from "../../../src/lib/analyzers/coverage.ts";

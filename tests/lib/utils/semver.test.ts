@@ -1,3 +1,4 @@
+import "../../setup/require-sandbox.test.ts";
 import { describe, expect, it } from "bun:test";
 import {
   compareSemver,

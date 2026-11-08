@@ -1,0 +1,20 @@
+FROM oven/bun:1.4.0 AS bun
+
+FROM node:24.13.0-bookworm-slim AS tools
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends bash git ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install --global --force pnpm@12.15.0 yarn@1.22.22 \
+    && npm cache clean --force
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
+WORKDIR /app
+
+FROM tools AS dependencies
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+FROM tools AS test
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY . .
+USER node
+CMD ["bun", "test"]

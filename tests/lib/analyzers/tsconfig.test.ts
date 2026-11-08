@@ -1,3 +1,4 @@
+import "../../setup/require-sandbox.test.ts";
 import { describe, expect, it } from "bun:test";
 import { analyzeTsConfig, internals } from "../../../src/lib/analyzers/tsconfig.ts";
 

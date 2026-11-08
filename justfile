@@ -38,18 +38,24 @@ install-local: build
     *) echo "NOTE: $INSTALL_DIR is not on your PATH; add it to use \`upkeep\` directly." ;; \
   esac
 
-test:
-  bun test
+[private]
+_docker-ready:
+  @command -v docker >/dev/null 2>&1 || { echo "Docker is required for tests. Install Docker and start its daemon." >&2; exit 1; }
+  @docker info >/dev/null 2>&1 || { echo "Docker is not running. Start Docker, then retry just test or just coverage-check." >&2; exit 1; }
+  @docker compose version >/dev/null 2>&1 || { echo "Docker Compose is required. Install the docker compose plugin." >&2; exit 1; }
 
-test-watch:
-  bun run test:watch
+test: _docker-ready
+  docker compose run --rm --build test bun test
 
-test-coverage:
-  bun run test:coverage
+test-watch: _docker-ready
+  docker compose run --rm --build --volume "{{justfile_directory()}}/src:/app/src:ro" --volume "{{justfile_directory()}}/tests:/app/tests:ro" test bun test --watch
+
+test-coverage: _docker-ready
+  docker compose run --rm --build test bun test --coverage
 
 # Run tests with coverage and enforce the aggregate floor (what CI runs).
-coverage-check:
-  ./scripts/check-coverage.sh
+coverage-check: _docker-ready
+  docker compose run --rm --build test ./scripts/check-coverage.sh
 
 typecheck:
   bun run typecheck

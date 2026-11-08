@@ -1,3 +1,4 @@
+import "../setup/require-sandbox.test.ts";
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 

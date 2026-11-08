@@ -61,6 +61,7 @@ jobs:
       - name: Verify
         run: |
           just typecheck
+          docker compose version
           just test
           # Compile for the host target too. A break here fails the run before
           # the bump commit is pushed, rather than after a tag already exists.
