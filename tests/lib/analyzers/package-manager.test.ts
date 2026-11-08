@@ -1,3 +1,4 @@
+import "../../setup/require-sandbox.test.ts";
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { detectPackageManager } from "../../../src/lib/analyzers/package-manager.ts";

@@ -1,3 +1,4 @@
+import "../../../setup/require-sandbox.test.ts";
 // This is a mock test file used as a fixture for testing.
 // It should NOT be run by bun test because it imports from fixtures.
 

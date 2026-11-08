@@ -1,3 +1,4 @@
+import "../../setup/require-sandbox.test.ts";
 import { describe, expect, test } from "bun:test";
 import { getFixturePath, parseJsonOutput, runCli } from "../../helpers/run-cli.ts";
 

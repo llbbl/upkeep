@@ -1,3 +1,4 @@
+import "../../setup/require-sandbox.test.ts";
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { assessRisk, internals, type RiskLevel } from "../../../src/lib/scorers/risk.ts";
 import * as execModule from "../../../src/lib/utils/exec.ts";

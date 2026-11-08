@@ -1,0 +1,14 @@
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      HOME: /tmp/home
+      UPKEEP_SANDBOX: "1"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    user: node

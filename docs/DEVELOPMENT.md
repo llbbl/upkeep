@@ -5,6 +5,7 @@
 - [Bun](https://bun.sh) >= 1.3 (CI pins 1.4.0)
 - [pnpm](https://pnpm.io/installation) 12.15.0, pinned in `package.json`
 - [`just`](https://github.com/casey/just) — the task runner for every command below
+- Docker with the `docker compose` plugin and a running daemon (required for tests)
 - `gh` CLI (optional, for the Dependabot features)
 
 ## Setup
@@ -19,7 +20,7 @@ just install
 Bun remains the runtime for scripts, tests, and compiled binaries. CI uses
 `pnpm/setup@v3` to read the pnpm version from `package.json`, install Bun 1.4.0,
 cache the pnpm store, and perform one frozen-lockfile install per job.
-No Node version is declared by this repository.
+The test image pins Node 24.13.0, Bun 1.4.0, pnpm 12.15.0, and Yarn 1.22.22.
 
 To update dependencies, run `pnpm install` and commit the generated
 `pnpm-lock.yaml`. `pnpm-workspace.yaml` keeps fixture projects outside the
@@ -45,9 +46,9 @@ Run `just --list` for the full set. The ones you will use most:
 | Command | What it does |
 |---------|--------------|
 | `just dev <args>` | Run the CLI from source, e.g. `just dev detect` |
-| `just test` | Run the test suite |
-| `just test-watch` | Run tests in watch mode |
-| `just test-coverage` | Run tests with coverage |
+| `just test` | Build the sandbox image and run the test suite |
+| `just test-watch` | Run sandboxed tests with read-only `src/` and `tests/` mounts |
+| `just test-coverage` | Run sandboxed tests with coverage |
 | `just typecheck` | Type check with TypeScript |
 | `just lint` | Lint with Biome |
 | `just lint-fix` | Lint and apply fixes |
@@ -57,6 +58,46 @@ Run `just --list` for the full set. The ones you will use most:
 | `just coverage-check` | Run tests with coverage and enforce the floor (what CI runs) |
 | `just build-all` | Compile for all five release targets |
 | `just clean` | Remove `dist/` |
+
+## Test sandbox
+
+Run tests only through `just test`, `just test-watch`, `just test-coverage`, or
+`just coverage-check`. Every test imports the sandbox guard before other imports,
+so direct host runs are refused from the repository root or any child directory.
+`just check` runs lint and typecheck on the host, then tests in Docker;
+builds also stay on the host. Both CI and release verification run tests in the
+container.
+
+The multi-stage `Dockerfile.test` copies the allowed test inputs into the image. Normal
+test and coverage runs have no host bind mounts. Dependencies are installed from
+the frozen lockfile in a cached layer, so source edits rebuild only the final
+copy layer. npm installs exact pnpm and Yarn versions globally to avoid Corepack
+downloads during read-only test runs; npm itself comes with the pinned Node image.
+
+The container runs as a non-root user with a read-only root filesystem, no Linux
+capabilities, and no privilege escalation. Temporary files and package-manager
+caches use `/tmp`, with `HOME=/tmp/home`. The build context allows only `src/`,
+`tests/`, `scripts/`, and the package, lockfile, workspace, and TypeScript config
+files. Other root files, including local agent context and credential files, are
+excluded. Inside allowed directories it also excludes local agent configuration,
+`.env*`, `.npmrc`, `.netrc`, `.yarnrc*`, names containing `token`, and `.pem`/`.key`
+files at any depth, along with generated dependencies, builds, and coverage output.
+The committed coverage-summary fixture is the sole coverage-output exception.
+This allowlist and name filter do not identify secrets stored under other allowed
+names; review the source and fixtures copied into the image.
+Coverage is printed to the terminal; files inside
+the temporary filesystem disappear when the container exits.
+
+`just test-watch` additionally mounts only `src/` and `tests/` read-only so it can
+see edits. Changes to dependencies or configuration require restarting the recipe.
+
+Network access remains enabled because CLI tests contact the npm registry; the
+sandbox does not prevent a malicious test from sending data over the network.
+A PR that removes a test's first guard import is caught by `guard-coverage.test.ts`
+in CI. The guard checks both `UPKEEP_SANDBOX=1` and `/.dockerenv` independently of
+the working directory. A PR can still edit the guard, its coverage test, Docker
+configuration, or recipes: review those changes and keep running tests through
+`just`.
 
 ## Versioning
 
@@ -102,8 +143,11 @@ just test-coverage    # report only
 just coverage-check   # report and enforce the floor (what CI runs)
 ```
 
-CI runs `scripts/check-coverage.sh`, which fails the build if aggregate coverage
-drops below the floor recorded in that script.
+CI runs `scripts/check-coverage.sh` inside the test container, which fails the
+build if aggregate coverage drops below the floor recorded in that script.
+Locally, use `just coverage-check` to run the same gate in Docker.
+The guard and its import-coverage check use test filenames, so Bun excludes them
+from coverage and the aggregate gate retains its original measurement population.
 
 The floor is enforced by our own script rather than Bun's built-in
 `coverageThreshold` for two reasons, both verified on Bun 1.3.9:
