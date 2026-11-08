@@ -15,6 +15,7 @@ jobs:
     if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
     outputs:
       tag: ${{ steps.version.outputs.next }}
+      latest: ${{ steps.version.outputs.latest }}
       version: ${{ steps.version.outputs.version }}
       sha: ${{ steps.bump.outputs.sha }}
 
@@ -35,30 +36,23 @@ jobs:
 
       - name: Determine next version
         id: version
+        shell: bash
         run: |
-          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "latest=$latest_tag" >> "$GITHUB_OUTPUT"
-
-          version="${latest_tag#v}"
-          IFS='.' read -r major minor patch <<< "$version"
-
-          commits=$(git log "$latest_tag"..HEAD --pretty=format:"%s" 2>/dev/null || git log --pretty=format:"%s")
-
-          if echo "$commits" | grep -qE "^feat(\(.+\))?!:|^fix(\(.+\))?!:|^refactor(\(.+\))?!:|BREAKING CHANGE"; then
-            major=$((major + 1))
-            minor=0
-            patch=0
-          elif echo "$commits" | grep -qE "^feat(\(.+\))?:"; then
-            minor=$((minor + 1))
-            patch=0
+          if latest=$(git describe --tags --abbrev=0 2>/dev/null); then
+            history="$latest..HEAD"
           else
-            patch=$((patch + 1))
+            latest="v0.0.0"
+            history=HEAD
           fi
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          git log "$history" --pretty=format:'%B%x00' | ./scripts/next-version.sh "$latest" >> "$GITHUB_OUTPUT"
+          echo "Next version: $(sed -n 's/^next=//p' "$GITHUB_OUTPUT") (from $latest)"
 
-          next="v${major}.${minor}.${patch}"
-          echo "next=$next" >> "$GITHUB_OUTPUT"
-          echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
-          echo "Next version: $next (from $latest_tag)"
+      - name: Validate version before updating files
+        env:
+          LATEST: ${{ steps.version.outputs.latest }}
+          TAG: ${{ steps.version.outputs.next }}
+        run: ./scripts/assert-same-major.sh "$LATEST" "$TAG"
 
       - name: Update versions
         run: |
@@ -189,6 +183,12 @@ jobs:
 
           ls -la release/
           cat release/checksums.txt
+
+      - name: Reject automatic major releases
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+          LATEST: ${{ needs.version.outputs.latest }}
+        run: ./scripts/assert-same-major.sh "$LATEST" "$TAG"
 
       # Everything above this point can fail without leaving a trace on the
       # repo. The tag is the first irreversible act, so it goes last -- after
