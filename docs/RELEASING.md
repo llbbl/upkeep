@@ -2,8 +2,8 @@
 
 Releases are **automated**. Merging a PR into `main` triggers the
 [`auto-release`](../.github/workflows/auto-release.yml) workflow, which derives the
-next version from the commit messages, bumps every version-bearing file, tags,
-builds all five platform binaries, and publishes a GitHub Release.
+next version from the commit messages, bumps every version-bearing file,
+builds all five platform binaries, pushes a tag, and publishes a GitHub Release.
 
 You do not normally run any release command by hand.
 
@@ -14,9 +14,15 @@ rules:
 
 | Commits since last tag | Bump |
 |---|---|
-| Any `feat!:`, `fix!:`, `refactor!:`, or `BREAKING CHANGE` | major |
-| Any `feat:` | minor |
+| Any `type!:` / `type(scope)!:` subject or `BREAKING CHANGE:` / `BREAKING-CHANGE:` footer | minor, with a warning per breaking commit |
+| Any `feat:` or `feat(scope):` | minor |
 | Anything else | patch |
+
+Automation never bumps the major version. A major release is a human decision:
+first remove the `block-major-tags` repository ruleset, then use `just bump-major`
+as described below. Both tags must be valid and have equal major versions before
+the version job updates files; the release job repeats that check before creating
+or pushing a tag.
 
 This is why the commit conventions in [`CLAUDE.md`](../CLAUDE.md) matter — the
 prefix you write directly decides the version number.
@@ -28,13 +34,14 @@ own bump commit does not retrigger it.
 
 1. **version** — computes the next version, runs `just set-version X.Y.Z`,
    verifies with `just typecheck` and `just test`, then commits
-   `chore(release): bump version to vX.Y.Z` and pushes an annotated tag.
+   `chore(release): bump version to vX.Y.Z` and pushes the version bump commit.
 2. **build** — compiles the binary for `linux-x64`, `linux-arm64`, `darwin-x64`,
    `darwin-arm64`, and `windows-x64` on matching runners.
 3. **release** — packages each Unix binary as
    `upkeep_<version>_<os>_<arch>.tar.gz` (with the binary named `upkeep` inside),
-   ships Windows as a raw `.exe`, writes `checksums.txt`, generates the changelog
-   with git-cliff, and creates the GitHub Release.
+   ships Windows as a raw `.exe`, writes `checksums.txt`, checks the major version,
+   creates and pushes an annotated tag, generates the changelog with git-cliff,
+   and creates the GitHub Release.
 
 The Homebrew tap (`llbbl/tap`) consumes `checksums.txt` to render per-platform
 `url` + `sha256`, so the archive naming and the checksums file are part of the
@@ -65,7 +72,8 @@ Missing any one of those is how a file silently drifts out of sync.
 ## Manual release (escape hatch)
 
 Only needed if the workflow is broken or you are releasing from a machine on
-purpose. From a clean `main`:
+purpose, or when a human chooses a major release. Before using `just bump-major`,
+remove the `block-major-tags` repository ruleset. From a clean `main`:
 
 ```bash
 just bump-patch   # 0.4.0 -> 0.4.1
