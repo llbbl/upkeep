@@ -1,6 +1,6 @@
 ---
 name: trim
-version: 0.6.3
+version: 0.6.4
 description: Find and remove JS/TS dependency weight you carry but never use
 allowed-tools: Bash, Read, Grep, Glob, Edit, Task
 ---
