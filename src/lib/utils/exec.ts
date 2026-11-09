@@ -2,6 +2,9 @@ import { createLogger } from "../logger.ts";
 
 const log = createLogger("exec");
 
+// Fail closed; add a command only when a caller needs it.
+const ALLOWED_COMMANDS = new Set(["npm", "pnpm", "yarn", "bun", "gh", "git"]);
+
 export interface ExecResult {
   stdout: string;
   stderr: string;
@@ -15,43 +18,41 @@ export interface ExecOptions {
 }
 
 /**
- * Execute a shell command and capture its output.
- *
- * Uses Bun.spawn for process execution (safe from shell injection
- * as arguments are passed directly, not through a shell).
- *
- * @param command - The command to execute
- * @param args - Arguments to pass to the command
- * @param options - Optional execution options
- * @returns Promise resolving to the command result
+ * Arguments are passed directly to the allowed executable without shell interpretation.
+ * Non-zero exits resolve with their output; spawn failures and timeouts reject.
  */
 export async function exec(
   command: string,
   args: string[] = [],
   options: ExecOptions = {}
 ): Promise<ExecResult> {
+  if (!ALLOWED_COMMANDS.has(command)) {
+    log.warn({ command }, "Command not allowed");
+    throw new Error(`Command not allowed: ${command}`);
+  }
+
   const { cwd = process.cwd(), timeout = 30000, env } = options;
 
   log.debug({ command, args, cwd }, "Executing command");
 
-  const proc = Bun.spawn([command, ...args], {
-    cwd,
-    stdout: "pipe",
-    stderr: "pipe",
-    env: env ? { ...process.env, ...env } : process.env,
-  });
-
-  // Set up timeout with cleanup
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      proc.kill();
-      reject(new Error(`Command timed out after ${timeout}ms: ${command} ${args.join(" ")}`));
-    }, timeout);
-  });
-
+  let timedOut = false;
   try {
-    // Race between command completion and timeout
+    const proc = Bun.spawn([command, ...args], {
+      cwd,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: env ? { ...process.env, ...env } : process.env,
+    });
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        timedOut = true;
+        proc.kill();
+        reject(new Error(`Command timed out after ${timeout}ms: ${command} ${args.join(" ")}`));
+      }, timeout);
+    });
+
     const result = await Promise.race([
       (async () => {
         const stdout = await new Response(proc.stdout).text();
@@ -74,42 +75,14 @@ export async function exec(
 
     return result;
   } catch (error) {
-    if (error instanceof Error && error.message.includes("timed out")) {
+    if (timedOut) {
       throw error;
     }
     log.error({ error, command, args }, "Command execution failed");
     throw new Error(`Failed to execute command: ${command} ${args.join(" ")}`, { cause: error });
   } finally {
-    // Always clear the timeout to prevent memory leaks
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
   }
-}
-
-/**
- * Execute a command and return only stdout, throwing on non-zero exit.
- *
- * @param command - The command to execute
- * @param args - Arguments to pass to the command
- * @param options - Optional execution options
- * @returns Promise resolving to stdout
- * @throws Error if the command exits with non-zero code
- */
-export async function execOrThrow(
-  command: string,
-  args: string[] = [],
-  options: ExecOptions = {}
-): Promise<string> {
-  const result = await exec(command, args, options);
-
-  if (result.exitCode !== 0) {
-    const error = new Error(
-      `Command failed with exit code ${result.exitCode}: ${command} ${args.join(" ")}`
-    );
-    log.error({ exitCode: result.exitCode, stderr: result.stderr }, "Command failed");
-    throw error;
-  }
-
-  return result.stdout;
 }

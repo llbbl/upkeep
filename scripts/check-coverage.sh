@@ -1,26 +1,10 @@
 #!/usr/bin/env bash
-#
-# Run the test suite with coverage and enforce an aggregate floor.
-#
-# Why this exists rather than Bun's built-in `coverageThreshold`:
-# that setting is enforced PER FILE, not against the aggregate. Because
-# src/lib/utils/exec.ts currently sits at 0% functions (see issue #27), any
-# non-zero per-file threshold fails the build -- verified down to 0.02. The
-# table forms (`coverageThreshold = { line = ..., function = ... }` and a
-# `[test.coverageThreshold]` section) are additionally not enforced at all on
-# Bun 1.3.9: an impossible 0.99 still exits 0. A silently inert gate is worse
-# than no gate, so we parse the aggregate ourselves.
-#
-# Swap back to the built-in once exec.ts is covered and a per-file floor is
-# realistic.
-#
-# Floors can be overridden for local experimentation:
-#   MIN_LINES=80 MIN_FUNCS=85 ./scripts/check-coverage.sh
+# Bun's built-in coverage threshold applies per file, so aggregate floors use its summary row.
 
 set -euo pipefail
 
-MIN_LINES="${MIN_LINES:-75}"
-MIN_FUNCS="${MIN_FUNCS:-83}"
+MIN_LINES="${MIN_LINES:-82}"
+MIN_FUNCS="${MIN_FUNCS:-91}"
 
 output=$(bun test --coverage 2>&1) && test_status=0 || test_status=$?
 echo "$output"
