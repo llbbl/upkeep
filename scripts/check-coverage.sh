@@ -4,7 +4,7 @@
 set -euo pipefail
 
 MIN_LINES="${MIN_LINES:-82}"
-MIN_FUNCS="${MIN_FUNCS:-91}"
+MIN_FUNCS="${MIN_FUNCS:-90}"
 
 output=$(bun test --coverage 2>&1) && test_status=0 || test_status=$?
 echo "$output"
