@@ -1,6 +1,6 @@
 FROM oven/bun:1.4.0 AS bun
 
-FROM node:24.13.0-bookworm-slim AS tools
+FROM node:26.13.0-bookworm-slim AS tools
 RUN apt-get update \
     && apt-get install -y --no-install-recommends bash git ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
