@@ -1,6 +1,6 @@
 ---
 name: deps
-version: 0.6.8
+version: 0.6.9
 description: Upgrade JS/TS dependencies with risk assessment and Dependabot PR integration
 allowed-tools: Bash, Read, Grep, Glob, Edit
 ---
